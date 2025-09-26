@@ -1,84 +1,56 @@
 import { createBrowserClient, createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
-import { GetServerSidePropsContext, NextApiRequest, NextApiResponse } from 'next'
+import type { GetServerSidePropsContext, NextApiRequest, NextApiResponse } from 'next'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 type BrowserSupabaseClient = ReturnType<typeof createBrowserClient>
 
-const browserClientOptions = {
-  auth: {
-    // Prevent automatic token refresh conflicts
-    autoRefreshToken: true,
-    persistSession: true,
-    // Use PKCE flow for better security and Vercel compatibility
-    flowType: 'pkce' as const,
-    // Add debug mode for development
-    debug: process.env.NODE_ENV === 'development',
-    // Optimize for Vercel deployment
-    detectSessionInUrl: false
-  },
-  // Add request timeout to prevent hanging
-  global: {
-    headers: {
-      'X-Client-Info': 'ovio-merchant-webapp',
-      'X-Environment': process.env.NODE_ENV || 'production'
-    }
-  },
-  // Add realtime configuration for better performance
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  }
-}
+// Unique storage key so we don’t clash with other clients
+const storageKey = 'ovio-merchant-auth'
 
-const createSupabaseBrowserClient = () =>
-  createBrowserClient(supabaseUrl, supabaseAnonKey, browserClientOptions)
-
+// ✅ Browser client – only one instance
 const getBrowserSupabaseClient = (): BrowserSupabaseClient => {
   const globalScope = globalThis as typeof globalThis & {
-    __supabaseBrowserClient?: BrowserSupabaseClient
+    __supabaseClient?: BrowserSupabaseClient
   }
 
-  if (typeof window === 'undefined') {
-    return createSupabaseBrowserClient()
+  if (!globalScope.__supabaseClient) {
+    globalScope.__supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        storageKey,
+        autoRefreshToken: true,
+        persistSession: true,
+        flowType: 'pkce',
+        detectSessionInUrl: false,
+      },
+    })
   }
 
-  if (!globalScope.__supabaseBrowserClient) {
-    globalScope.__supabaseBrowserClient = createSupabaseBrowserClient()
-  }
-
-  return globalScope.__supabaseBrowserClient
+  return globalScope.__supabaseClient
 }
 
-// Client-side Supabase client with Vercel-optimized configuration
+// 👉 Use this everywhere in client components
 export const supabase = getBrowserSupabaseClient()
 
-// Server-side Supabase client for API routes and SSR
+// 👉 Server client for SSR / API handlers
 export const createServerSupabaseClient = (
   req: NextApiRequest | GetServerSidePropsContext['req'],
   res: NextApiResponse | GetServerSidePropsContext['res']
 ) => {
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      get(name: string) {
-        // Handle both NextApiRequest and GetServerSidePropsContext req types
-        if ('cookies' in req && req.cookies) {
-          return req.cookies[name]
-        }
-        return undefined
+      get(name) {
+        return 'cookies' in req ? req.cookies[name] : undefined
       },
-      set(name: string, value: string, options: any) {
-        // Handle both NextApiResponse and GetServerSidePropsContext res types
-        if ('cookies' in res && res.cookies && typeof (res.cookies as any).set === 'function') {
+      set(name, value, options) {
+        if ('cookies' in res && typeof (res.cookies as any).set === 'function') {
           (res.cookies as any).set(name, value, options)
         }
       },
-      remove(name: string, options: any) {
-        // Handle both NextApiResponse and GetServerSidePropsContext res types
-        if ('cookies' in res && res.cookies && typeof (res.cookies as any).set === 'function') {
+      remove(name, options) {
+        if ('cookies' in res && typeof (res.cookies as any).set === 'function') {
           (res.cookies as any).set(name, '', options)
         }
       },
@@ -86,14 +58,16 @@ export const createServerSupabaseClient = (
   })
 }
 
-// Admin client for server-side operations
-export const supabaseAdmin = createClient(
-  supabaseUrl,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'dummy-key-for-client-side',
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
+// 👉 Admin client (server-only, never in browser)
+export function getSupabaseAdmin() {
+  if (typeof window !== 'undefined') {
+    throw new Error('Admin client is server-only')
   }
-)
+  return createClient(
+    supabaseUrl,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+    }
+  )
+}
