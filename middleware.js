@@ -21,9 +21,9 @@ export async function middleware(req) {
   } = await supabase.auth.getSession()
 
   // Only protect /dashboard routes
-  if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/', req.url))
-  }
+  // if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
+  //   return NextResponse.redirect(new URL('/', req.url))
+  // }
 
   return res
 }

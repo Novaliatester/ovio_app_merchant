@@ -7,23 +7,25 @@ import { AuthUser, Merchant, UserRecord, getMerchantProfile, getUserRecord } fro
 import { getMerchantLogoUrl } from '@/lib/storage'
 
 interface AuthContextType {
-  user: AuthUser | null
-  userRecord: UserRecord | null
-  merchant: Merchant | null
-  loading: boolean
-  signOut: () => Promise<void>
-  refreshMerchant: () => Promise<void>
+    user: AuthUser | null
+    userRecord: UserRecord | null
+    merchant: Merchant | null
+    loadingContext: boolean
+    loading: boolean
+    signOut: () => Promise<void>
+    refreshMerchant: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [userRecord, setUserRecord] = useState<UserRecord | null>(null)
-  const [merchant, setMerchant] = useState<Merchant | null>(null)
-  const [loading, setLoading] = useState(true)
-  const loadingDataRef = useRef(false)
-  const isMountedRef = useRef(true)
+    const [user, setUser] = useState<AuthUser | null>(null)
+    const [userRecord, setUserRecord] = useState<UserRecord | null>(null)
+    const [merchant, setMerchant] = useState<Merchant | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [loadingContext, setLoadingContext] = useState(true)
+    const loadingDataRef = useRef(false)
+    const isMountedRef = useRef(true)
 
   const loadAuthData = useCallback(async (authUser: AuthUser) => {
     if (loadingDataRef.current) {
@@ -60,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error loading auth data:', error)
       // Continue with user set but no merchant data
     } finally {
+        setLoadingContext(false)
       loadingDataRef.current = false
     }
   }, [])
@@ -137,13 +140,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state change:', event, session?.user?.id)
-        
+
         if (!isMounted) return
 
         if (session?.user) {
           const authUser = session.user as AuthUser
           setUser(authUser)
-          
+
           // Defer async operations to prevent deadlocks
           setTimeout(() => {
             if (isMounted) {
@@ -157,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserRecord(null)
           setMerchant(null)
         }
-        
+
         if (isMounted) {
           setLoading(false)
         }
@@ -168,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(initTimer)
       isMounted = false
       isMountedRef.current = false
-      subscription.unsubscribe()
+      //subscription.unsubscribe()
     }
   }, [loadAuthData])
 
@@ -204,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user])
 
   return (
-    <AuthContext.Provider value={{ user, userRecord, merchant, loading, signOut, refreshMerchant }}>
+    <AuthContext.Provider value={{ user, userRecord, merchant, loadingContext, loading, signOut, refreshMerchant }}>
       {children}
     </AuthContext.Provider>
   )
