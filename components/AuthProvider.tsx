@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes - CRITICAL: No async operations in callback
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event: any, session: any) => {
         console.log('Auth state change:', event, session?.user?.id)
 
         if (!isMounted) return

@@ -11,7 +11,7 @@ export default function HomePage() {
   const { user, userRecord, merchant, loading } = useAuth()
   const router = useRouter()
   const [isRedirecting, setIsRedirecting] = useState(false)
-  const redirectTimeoutRef = useRef<NodeJS.Timeout>()
+  const redirectTimeoutRef = useRef<NodeJS.Timeout>(0 as unknown as NodeJS.Timeout)
   const hasRedirectedRef = useRef(false)
 
   useEffect(() => {

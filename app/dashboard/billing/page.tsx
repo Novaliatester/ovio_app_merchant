@@ -73,7 +73,7 @@ export default function BillingPage() {
       }
 
       if (offers && offers.length > 0) {
-        const offerIds = offers.map((offer) => offer.id)
+        const offerIds = offers.map((offer: any) => offer.id)
         const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
 
         const {
