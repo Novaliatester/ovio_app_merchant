@@ -42,8 +42,8 @@ export default function DashboardPageContent() {
       console.log('Auth dasboard loading state changed:', loadingContext, user, merchant)
     if (!loadingContext && (!user || !merchant) && !redirectingRef.current) {
       redirectingRef.current = true
-        console.log('User or merchant not found, redirecting to home page')
-      router.replace('/')
+        console.log('User or merchant not found, redirecting to login page')
+      router.replace('/login')
     }
   }, [user, merchant, loadingContext, router])
 

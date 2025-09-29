@@ -50,7 +50,7 @@ export default function BillingPage() {
   useEffect(() => {
     if (!loading && (!user || !merchant) && !redirectingRef.current) {
       redirectingRef.current = true
-      router.replace('/')
+      router.replace('/login')
     }
   }, [user, merchant, loading, router])
 

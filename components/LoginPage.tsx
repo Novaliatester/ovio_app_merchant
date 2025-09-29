@@ -56,7 +56,7 @@ export default function LoginPage() {
     try {
       await signIn(email, password)
       toast.success(t('auth.loginSuccess'))
-      router.push('/dashboard')
+      router.replace('/dashboard')
     } catch (error: any) {
       toast.error(error?.message || t('auth.loginError'))
     } finally {
