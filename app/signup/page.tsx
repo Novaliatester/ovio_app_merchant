@@ -203,7 +203,7 @@ export default function SignupPage() {
                 <div>
                   <input 
                     name="email" 
-                    placeholder="Email" 
+                    placeholder={t('signup.emailPlaceholder')} 
                     value={formData.email} 
                     onChange={handleInputChange} 
                     className={`input ${touched.email && errors.email ? 'border-red-500 focus:ring-red-500' : ''}`} 
@@ -216,7 +216,7 @@ export default function SignupPage() {
                   <input 
                     name="password" 
                     type="password" 
-                    placeholder="Password" 
+                    placeholder={t('signup.passwordPlaceholder')} 
                     value={formData.password} 
                     onChange={handleInputChange} 
                     className={`input ${touched.password && errors.password ? 'border-red-500 focus:ring-red-500' : ''}`} 
@@ -229,7 +229,7 @@ export default function SignupPage() {
                   <input 
                     name="confirmPassword" 
                     type="password" 
-                    placeholder="Confirm Password" 
+                    placeholder={t('signup.confirmPasswordPlaceholder')} 
                     value={formData.confirmPassword} 
                     onChange={handleInputChange} 
                     className={`input ${touched.confirmPassword && errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`} 
@@ -247,7 +247,7 @@ export default function SignupPage() {
                 <div>
                   <input 
                     name="name" 
-                    placeholder="Business name" 
+                    placeholder={t('signup.businessNamePlaceholder')} 
                     value={formData.name} 
                     onChange={handleInputChange} 
                     className={`input ${touched.name && errors.name ? 'border-red-500 focus:ring-red-500' : ''}`} 
@@ -259,7 +259,7 @@ export default function SignupPage() {
                 <div>
                   <input 
                     name="legal_name" 
-                    placeholder="Legal name" 
+                    placeholder={t('signup.legalNamePlaceholder')} 
                     value={formData.legal_name} 
                     onChange={handleInputChange} 
                     className={`input ${touched.legal_name && errors.legal_name ? 'border-red-500 focus:ring-red-500' : ''}`} 
@@ -271,7 +271,7 @@ export default function SignupPage() {
                 <div>
                   <input 
                     name="vat_number" 
-                    placeholder="VAT number (optional)" 
+                    placeholder={t('signup.vatPlaceholder')} 
                     value={formData.vat_number} 
                     onChange={handleInputChange} 
                     className={`input ${touched.vat_number && errors.vat_number ? 'border-red-500 focus:ring-red-500' : ''}`} 
@@ -292,7 +292,7 @@ export default function SignupPage() {
                 <div>
                   <input 
                     name="street" 
-                    placeholder="Street" 
+                    placeholder={t('signup.streetPlaceholder')} 
                     value={formData.street} 
                     onChange={handleInputChange} 
                     className={`input ${touched.street && errors.street ? 'border-red-500 focus:ring-red-500' : ''}`} 
@@ -304,7 +304,7 @@ export default function SignupPage() {
                 <div>
                   <input 
                     name="city" 
-                    placeholder="City" 
+                    placeholder={t('signup.cityPlaceholder')} 
                     value={formData.city} 
                     onChange={handleInputChange} 
                     className={`input ${touched.city && errors.city ? 'border-red-500 focus:ring-red-500' : ''}`} 
@@ -316,7 +316,7 @@ export default function SignupPage() {
                 <div>
                   <input 
                     name="postal_code" 
-                    placeholder="Postal code" 
+                    placeholder={t('signup.postalCodePlaceholder')} 
                     value={formData.postal_code} 
                     onChange={handleInputChange} 
                     className={`input ${touched.postal_code && errors.postal_code ? 'border-red-500 focus:ring-red-500' : ''}`} 
@@ -328,7 +328,7 @@ export default function SignupPage() {
                 <div>
                   <input 
                     name="country" 
-                    placeholder="Country" 
+                    placeholder={t('signup.countryPlaceholder')} 
                     value={formData.country} 
                     onChange={handleInputChange} 
                     className={`input ${touched.country && errors.country ? 'border-red-500 focus:ring-red-500' : ''}`} 
@@ -340,7 +340,7 @@ export default function SignupPage() {
                 <div>
                   <input 
                     name="instagram_handle" 
-                    placeholder="Instagram handle (optional)" 
+                    placeholder={t('signup.instagramPlaceholder')} 
                     value={formData.instagram_handle} 
                     onChange={handleInputChange} 
                     className="input" 
