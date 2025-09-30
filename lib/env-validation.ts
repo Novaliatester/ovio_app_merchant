@@ -8,12 +8,6 @@ const requiredEnvVars = [
   'SUPABASE_SERVICE_ROLE_KEY'
 ] as const
 
-const optionalEnvVars = [
-  'NEXT_PUBLIC_BILLING_WEBHOOK_URL',
-  'VERCEL',
-  'VERCEL_ENV',
-  'VERCEL_REGION'
-] as const
 
 export interface EnvConfig {
   NEXT_PUBLIC_SUPABASE_URL: string

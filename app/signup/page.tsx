@@ -372,7 +372,7 @@ export default function SignupPage() {
                 </div>
                 <p className="text-lg font-medium text-gray-900">{t('signup.confirmAccount')}</p>
                 <p className="text-sm text-gray-500 mt-2 text-center max-w-sm">
-                  We've sent a confirmation link to <strong>{formData.email}</strong>. Please check your email and click the link to activate your merchant account.
+                  We&apos;ve sent a confirmation link to <strong>{formData.email}</strong>. Please check your email and click the link to activate your merchant account.
                 </p>
                 <button
                   className="btn btn-primary mt-6"

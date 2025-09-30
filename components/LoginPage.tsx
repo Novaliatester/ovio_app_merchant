@@ -57,17 +57,13 @@ export default function LoginPage() {
       await signIn(email, password)
       toast.success(t('auth.loginSuccess'))
       router.replace('/dashboard')
-    } catch (error: any) {
-      toast.error(error?.message || t('auth.loginError'))
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : t('auth.loginError'))
     } finally {
       setLoading(false)
     }
   }
 
-  const renderError = (field: keyof ValidationState) =>
-    touched[field] && errors[field] ? (
-      <p className="form-error mt-1">{errors[field]}</p>
-    ) : null
 
   return (
     <div 

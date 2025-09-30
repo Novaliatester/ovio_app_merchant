@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'react-hot-toast'
 import { useTranslation } from '@/components/LanguageProvider'
 import { getMerchantLogoUrl, uploadMerchantLogo } from '@/lib/storage'
+import Image from 'next/image'
 
 interface ProfileFormData {
   name: string
@@ -169,7 +170,7 @@ export default function ProfilePage() {
         signedUrl = uploadedSigned
       }
 
-      const updatePayload: Record<string, any> = {
+      const updatePayload: Record<string, unknown> = {
         name: formData.name,
         legal_name: formData.legal_name || null,
         vat_number: formData.vat_number || null,
@@ -224,9 +225,9 @@ export default function ProfilePage() {
       }
       setLogoFile(null)
       toast.success(t('profile.saveSuccess'))
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating profile:', error)
-      toast.error(error?.message || t('profile.saveError'))
+      toast.error(error instanceof Error ? error.message : t('profile.saveError'))
     } finally {
       setSaving(false)
     }
@@ -244,9 +245,9 @@ export default function ProfilePage() {
       await refreshMerchant()
       toast.success(t('profile.deactivateSuccess'))
       setShowDeactivateModal(false)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deactivating account:', error)
-      toast.error(error?.message || t('profile.deactivateError'))
+      toast.error(error instanceof Error ? error.message : t('profile.deactivateError'))
     }
   }
 
@@ -261,9 +262,9 @@ export default function ProfilePage() {
 
       await refreshMerchant()
       toast.success(t('profile.reactivateSuccess'))
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error reactivating account:', error)
-      toast.error(error?.message || t('profile.reactivateError'))
+      toast.error(error instanceof Error ? error.message : t('profile.reactivateError'))
     }
   }
 
@@ -476,9 +477,11 @@ export default function ProfilePage() {
               </label>
               {logoPreview ? (
                 <div className="relative">
-                  <img
+                  <Image
                     src={logoPreview}
                     alt="Logo preview"
+                    width={128}
+                    height={128}
                     className="h-32 w-32 rounded-xl border border-gray-200 object-cover"
                   />
                   <button

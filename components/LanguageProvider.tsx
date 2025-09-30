@@ -28,7 +28,7 @@ function isLanguageCode(value: unknown): value is LanguageCode {
 
 function resolveTranslation(code: LanguageCode, key: string): string | undefined {
   const segments = key.split('.')
-  let current: any = translations[code]
+  let current: unknown = translations[code]
 
   for (const segment of segments) {
     if (current && typeof current === 'object' && segment in current) {

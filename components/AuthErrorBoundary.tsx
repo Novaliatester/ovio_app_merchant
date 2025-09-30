@@ -114,7 +114,7 @@ export class AuthErrorBoundary extends React.Component<
   }
 }
 
-function DefaultAuthErrorFallback({ error, retry }: { error: Error; retry: () => void }) {
+function DefaultAuthErrorFallback({ retry }: { error: Error; retry: () => void }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">

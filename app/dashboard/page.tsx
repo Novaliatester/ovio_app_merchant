@@ -63,7 +63,7 @@ export default function DashboardPageContent() {
             let totalRedemptions = 0
             let monthlyRedemptions = 0
             if (offers && offers.length > 0) {
-                const offerIds = offers.map((offer: any) => offer.id)
+                const offerIds = offers.map((offer: { id: number }) => offer.id)
                 const {count} = await supabase
                     .from('redemptions')
                     .select('*', {count: 'exact', head: true})

@@ -9,7 +9,7 @@ export interface SecurityEvent {
   ip?: string
   userAgent?: string
   timestamp: Date
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 }
 
 class SecurityAuditor {
@@ -207,7 +207,7 @@ export function analyzePasswordStrength(password: string): {
 /**
  * Utility to sanitize user input for logging
  */
-export function sanitizeForLogging(obj: any): any {
+export function sanitizeForLogging(obj: unknown): unknown {
   const sensitive = ['password', 'token', 'key', 'secret', 'authorization']
   
   if (typeof obj === 'string') {
@@ -219,7 +219,7 @@ export function sanitizeForLogging(obj: any): any {
   }
 
   if (obj && typeof obj === 'object') {
-    const sanitized: any = {}
+    const sanitized: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(obj)) {
       const lowerKey = key.toLowerCase()
       if (sensitive.some(s => lowerKey.includes(s))) {

@@ -45,13 +45,13 @@ export const createServerSupabaseClient = (
         return 'cookies' in req ? req.cookies[name] : undefined
       },
       set(name, value, options) {
-        if ('cookies' in res && typeof (res.cookies as any).set === 'function') {
-          (res.cookies as any).set(name, value, options)
+        if ('cookies' in res && typeof (res.cookies as { set: (name: string, value: string, options?: unknown) => void }).set === 'function') {
+          (res.cookies as { set: (name: string, value: string, options?: unknown) => void }).set(name, value, options)
         }
       },
       remove(name, options) {
-        if ('cookies' in res && typeof (res.cookies as any).set === 'function') {
-          (res.cookies as any).set(name, '', options)
+        if ('cookies' in res && typeof (res.cookies as { set: (name: string, value: string, options?: unknown) => void }).set === 'function') {
+          (res.cookies as { set: (name: string, value: string, options?: unknown) => void }).set(name, '', options)
         }
       },
     },

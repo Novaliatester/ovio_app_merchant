@@ -14,7 +14,7 @@ export const localeMap: Record<LanguageCode, string> = {
   cat: 'ca-ES',
 }
 
-export const translations: Record<LanguageCode, Record<string, any>> = {
+export const translations: Record<LanguageCode, Record<string, unknown>> = {
   en: {
     language: {
       select: 'Language',

@@ -64,7 +64,7 @@ export function validateEmail(email: string): ValidationResult {
   }
 
   // Additional security checks
-  const [localPart, domain] = trimmed.split('@')
+  const [localPart] = trimmed.split('@')
   
   if (localPart.length > 64) {
     return { isValid: false, error: 'Email local part is too long' }

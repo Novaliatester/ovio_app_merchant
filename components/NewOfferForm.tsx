@@ -210,9 +210,9 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
       const plural = count > 1 ? 's' : ''
       toast.success(t('offers.newFormSuccess', { count, plural }))
       onSuccess()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating offers:', error)
-      toast.error(error?.message || t('offers.newFormError'))
+      toast.error(error instanceof Error ? error.message : t('offers.newFormError'))
     } finally {
       setLoading(false)
     }

@@ -4,8 +4,6 @@ import { useAuth } from '@/components/AuthProvider'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import LoginPage from '@/components/LoginPage'
-import DashboardPageContent from "@/app/dashboard/page";
-import DashboardLayout from "@/components/DashboardLayout";
 
 export default function HomePage() {
   const { user, userRecord, merchant, loading } = useAuth()
@@ -47,13 +45,14 @@ export default function HomePage() {
       }
       // If no user or userRecord, stay on login page (no redirect needed)
     }
-  }, [user, userRecord, merchant, loading, router, isRedirecting])
+  }, [user, userRecord, merchant, loading, router, isRedirecting, pathname])
 
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
-      if (redirectTimeoutRef.current) {
-        clearTimeout(redirectTimeoutRef.current)
+      const timeoutId = redirectTimeoutRef.current
+      if (timeoutId) {
+        clearTimeout(timeoutId)
       }
     }
   }, [])

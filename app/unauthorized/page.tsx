@@ -37,7 +37,7 @@ export default function UnauthorizedPage() {
             Access Denied
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            You don't have permission to access this application.
+            You don&apos;t have permission to access this application.
           </p>
         </div>
         
@@ -61,7 +61,7 @@ export default function UnauthorizedPage() {
                 </p>
                 <ul className="mt-2 text-xs list-disc list-inside space-y-1">
                   <li>No merchant profile has been created for your account</li>
-                  <li>There's an issue with the database connection</li>
+                  <li>There&apos;s an issue with the database connection</li>
                   <li>Your account needs to be set up properly</li>
                 </ul>
                 <p className="mt-2">

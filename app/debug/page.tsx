@@ -6,13 +6,7 @@ import { useEffect, useState } from 'react'
 
 export default function DebugPage() {
   const { user, userRecord, merchant, loading } = useAuth()
-  const [debugInfo, setDebugInfo] = useState<any>(null)
-
-  useEffect(() => {
-    if (user) {
-      checkDatabase()
-    }
-  }, [user])
+  const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null)
 
   const checkDatabase = async () => {
     try {
@@ -58,6 +52,12 @@ export default function DebugPage() {
       setDebugInfo({ error: error instanceof Error ? error.message : 'Unknown error' })
     }
   }
+
+  useEffect(() => {
+    if (user) {
+      checkDatabase()
+    }
+  }, [user, checkDatabase])
 
   if (loading) {
     return <div>Loading...</div>

@@ -1,7 +1,6 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
-import { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { AuthUser, Merchant, UserRecord, getMerchantProfile, getUserRecord } from '@/lib/auth'
 import { getMerchantLogoUrl } from '@/lib/storage'
@@ -137,8 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 50)
 
     // Listen for auth changes - CRITICAL: No async operations in callback
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event: any, session: any) => {
+    const { data: { subscription: _subscription } } = supabase.auth.onAuthStateChange(
+      (event: string, session: { user?: { id: string } } | null) => {
         console.log('Auth state change:', event, session?.user?.id)
 
         if (!isMounted) return

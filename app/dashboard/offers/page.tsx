@@ -204,11 +204,6 @@ export default function OffersPage() {
     }
   }
 
-  const openCreateForm = () => {
-    if (isSuspended) return
-    setEditingOffer(null)
-    setFormOpen(true)
-  }
 
   const openNewCreateForm = () => {
     if (isSuspended) return
@@ -580,9 +575,9 @@ function OfferForm({ offer, onClose, onSuccess }: OfferFormProps) {
       }
 
       onSuccess()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving offer:', error)
-      toast.error(error?.message || t('offers.saveError'))
+      toast.error(error instanceof Error ? error.message : t('offers.saveError'))
     } finally {
       setLoading(false)
     }
