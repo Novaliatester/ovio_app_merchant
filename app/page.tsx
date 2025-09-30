@@ -50,12 +50,11 @@ export default function HomePage() {
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
-      const timeoutId = redirectTimeoutRef.current
-      if (timeoutId) {
-        clearTimeout(timeoutId)
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current)
       }
     }
-  }, [])
+  }, [redirectTimeoutRef])
 
   if (loading || isRedirecting) {
     return (

@@ -2,13 +2,13 @@
 
 import { useAuth } from '@/components/AuthProvider'
 import { supabase } from '@/lib/supabase'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 export default function DebugPage() {
   const { user, userRecord, merchant, loading } = useAuth()
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null)
 
-  const checkDatabase = async () => {
+  const checkDatabase = useCallback(async () => {
     try {
       // Check if user exists in users table
       const { data: usersData, error: usersError } = await supabase
@@ -51,7 +51,7 @@ export default function DebugPage() {
     } catch (error) {
       setDebugInfo({ error: error instanceof Error ? error.message : 'Unknown error' })
     }
-  }
+  }, [user, userRecord, merchant])
 
   useEffect(() => {
     if (user) {

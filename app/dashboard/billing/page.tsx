@@ -169,11 +169,11 @@ export default function BillingPage() {
           throw new Error(webhookResult.error || 'Webhook call failed')
         }
 
-        const result = webhookResult.data
+        const result = webhookResult.data as { url?: string } | undefined
 
         if (result?.url) {
           toast.success(t('billing.actionRedirecting'))
-          const opened = window.open(result.url as string, '_blank', 'noopener,noreferrer')
+          const opened = window.open(result.url, '_blank', 'noopener,noreferrer')
 
           if (!opened) {
             toast.error(t('billing.popupBlockedError'))

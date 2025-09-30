@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 50)
 
     // Listen for auth changes - CRITICAL: No async operations in callback
-    const { data: { subscription: _subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event: string, session: { user?: { id: string } } | null) => {
         console.log('Auth state change:', event, session?.user?.id)
 
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(initTimer)
       isMounted = false
       isMountedRef.current = false
-      //subscription.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [loadAuthData])
 
