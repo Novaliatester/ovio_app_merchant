@@ -121,7 +121,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-40 lg:hidden ${sidebarOpen ? '' : 'pointer-events-none'}`}>
         <div
@@ -134,7 +134,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           }`}
         >
           <div className="flex items-center justify-between px-4 pb-4 pt-5">
-            <div>
+            <div className="flex-1">
               <p className="text-lg font-semibold text-gray-900">Ovio Merchant</p>
               <p className="text-xs text-gray-500">{t('navigation.brandTagline')}</p>
             </div>
@@ -150,74 +150,61 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto pb-6">{renderNavItems(true)}</div>
-          <div className="border-t border-gray-100 px-4 py-4">
-            <div className="flex items-center space-x-3">
-              <Avatar merchant={merchant} />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">{merchant?.name || t('navigation.profile')}</p>
-                <p className="text-xs text-gray-500">{t('navigation.brandTagline')}</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      <div className="flex">
+      <div className="flex relative z-10">
         {/* Desktop sidebar */}
         <aside
           className={`hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col lg:border-r lg:border-gray-200 lg:bg-white ${
             isSidebarCollapsed ? 'lg:w-20' : 'lg:w-64'
           }`}
         >
-          <div className={`flex h-16 items-center border-b border-gray-100 ${isSidebarCollapsed ? 'justify-center px-3' : 'px-4'} gap-3`}>
+          <div className={`flex h-16 items-center border-b border-gray-100 ${isSidebarCollapsed ? 'justify-center px-3' : 'px-4'}`}>
             {isSidebarCollapsed ? (
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-lg font-bold text-primary-600">
-                O
-              </div>
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-lg font-bold text-primary-600">
+                  O
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+                  className="ml-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:border-primary-200 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  title={t('navigation.expandSidebar')}
+                  aria-label={t('navigation.expandSidebar')}
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
             ) : (
-              <div>
-                <p className="text-lg font-semibold text-gray-900">Ovio Merchant</p>
-                <p className="text-xs text-gray-500">{t('navigation.brandTagline')}</p>
-              </div>
+              <>
+                <div className="flex-1">
+                  <p className="text-lg font-semibold text-gray-900">Ovio Merchant</p>
+                  <p className="text-xs text-gray-500">{t('navigation.brandTagline')}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:border-primary-200 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  title={t('navigation.collapseSidebar')}
+                  aria-label={t('navigation.collapseSidebar')}
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+              </>
             )}
-            <button
-              type="button"
-              onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:border-primary-200 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              title={isSidebarCollapsed ? t('navigation.expandSidebar') : t('navigation.collapseSidebar')}
-              aria-label={isSidebarCollapsed ? t('navigation.expandSidebar') : t('navigation.collapseSidebar')}
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {isSidebarCollapsed ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                )}
-              </svg>
-            </button>
           </div>
           <div className="flex flex-1 flex-col overflow-y-auto pb-6">
             {renderNavItems()}
-            <div className={`mt-auto space-y-4 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
-              <div
-                className={`flex items-center rounded-lg border border-gray-100 ${
-                  isSidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-3'
-                }`}
-              >
-                <Avatar merchant={merchant} collapsed={isSidebarCollapsed} />
-                {!isSidebarCollapsed && (
-                  <div className="ml-3 flex-1">
-                    <p className="text-sm font-medium text-gray-900 truncate">{merchant?.name || t('navigation.profile')}</p>
-                    <p className="text-xs text-gray-500">{t('navigation.brandTagline')}</p>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </aside>
 
         <div className={`flex min-h-screen w-full flex-1 flex-col ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
-          <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/80 backdrop-blur">
+          <header className="sticky top-0 z-30 border-b border-gray-200 bg-white">
             <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
               <div className="flex items-center space-x-3">
                 <button
@@ -230,30 +217,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
-                <div className="hidden lg:block">
-                  <p className="text-sm font-medium text-gray-500">{t('navigation.merchantPortal')}</p>
-                  <p className="text-base font-semibold text-gray-900">Ovio</p>
-                </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                <button
-                  type="button"
-                  className="hidden h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:text-gray-900 sm:flex"
-                >
-                  <span className="sr-only">{t('navigation.notifications')}</span>
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V4a1 1 0 10-2 0v1.083A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                </button>
-
                 <LanguageSelector />
 
                 <div className="relative" ref={profileMenuRef}>
                   <button
                     type="button"
                     onClick={() => setProfileMenuOpen((prev) => !prev)}
-                    className="flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-left transition hover:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="flex items-center rounded-full border border-gray-200 bg-white px-4 h-12 text-left transition hover:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
                     <div className="hidden pr-3 text-right text-sm text-gray-600 sm:block">
                       <p className="font-medium text-gray-900">{merchant?.name || t('navigation.profile')}</p>
@@ -286,7 +259,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           <main className="flex-1">
             <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-              {children}
+              <div className="bg-white rounded-2xl p-6 shadow-lg">
+                {children}
+              </div>
             </div>
           </main>
         </div>

@@ -19,6 +19,7 @@ interface ProfileFormData {
   postal_code: string
   country: string
   contact_email: string
+  instagram_handle: string
   logo_url: string
 }
 
@@ -38,6 +39,7 @@ export default function ProfilePage() {
     postal_code: '',
     country: '',
     contact_email: '',
+    instagram_handle: '',
     logo_url: ''
   })
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -97,6 +99,7 @@ export default function ProfilePage() {
           'contact_email' in merchant && merchant.contact_email
             ? (merchant.contact_email as string)
             : user?.email || '',
+        instagram_handle: 'instagram_handle' in merchant && merchant.instagram_handle ? (merchant.instagram_handle as string) : '',
         logo_url: merchant.logo_url ? (merchant.logo_url as string) : '',
       })
       const initialPreview = merchant.logo_signed_url
@@ -195,6 +198,9 @@ export default function ProfilePage() {
       if (supportsContactEmail) {
         updatePayload.contact_email = formData.contact_email || null
       }
+
+      // Instagram handle is always supported as it's in the schema
+      updatePayload.instagram_handle = formData.instagram_handle.trim() || null
 
       const { error } = await supabase
         .from('merchants')
@@ -296,213 +302,219 @@ export default function ProfilePage() {
           <p className="mt-2 text-gray-600">{t('profile.subtitle')}</p>
         </header>
 
+        {/* Business Identity Section */}
         <section className="card">
-          <div className="flex flex-col gap-6">
+          <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t('profile.businessInfo')}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t('profile.businessInfoDescription')}</p>
+              <h2 className="text-lg font-semibold text-gray-900">{t('profile.identitySectionTitle')}</h2>
+              <p className="mt-1 text-sm text-gray-500">{t('profile.identitySectionDescription')}</p>
             </div>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-10">
-                <div className="grid gap-6 lg:grid-cols-3">
-                  <div className="lg:col-span-2 space-y-6">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                          {t('profile.identitySectionTitle')}
-                        </h3>
-                        <p className="text-sm text-gray-500">{t('profile.identitySectionDescription')}</p>
-                      </div>
-                      <div className="grid gap-6 md:grid-cols-2">
-                        <div>
-                          <label htmlFor="name" className="form-label">{t('profile.businessName')}</label>
-                          <input
-                            id="name"
-                            name="name"
-                            type="text"
-                            required
-                            className="input"
-                            value={formData.name}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-
-                        <div>
-                          <label htmlFor="legal_name" className="form-label">{t('profile.legalEntityName')}</label>
-                          <input
-                            id="legal_name"
-                            name="legal_name"
-                            type="text"
-                            className="input"
-                            value={formData.legal_name}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-
-                        <div>
-                          <label htmlFor="vat_number" className="form-label">{t('profile.vatNumber')}</label>
-                          <input
-                            id="vat_number"
-                            name="vat_number"
-                            type="text"
-                            className="input"
-                            value={formData.vat_number}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                          {t('profile.addressSectionTitle')}
-                        </h3>
-                        <p className="text-sm text-gray-500">{t('profile.addressSectionDescription')}</p>
-                      </div>
-                      <div className="grid gap-6 md:grid-cols-2">
-                        <div className="md:col-span-2">
-                          <label htmlFor="street_line1" className="form-label">{t('profile.streetLine1')}</label>
-                          <input
-                            id="street_line1"
-                            name="street_line1"
-                            type="text"
-                            className="input"
-                            value={formData.street_line1}
-                            onChange={handleInputChange}
-                            placeholder={t('profile.streetLine1Placeholder')}
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label htmlFor="street_line2" className="form-label">{t('profile.streetLine2')}</label>
-                          <input
-                            id="street_line2"
-                            name="street_line2"
-                            type="text"
-                            className="input"
-                            value={formData.street_line2}
-                            onChange={handleInputChange}
-                            placeholder={t('profile.streetLine2Placeholder')}
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="city" className="form-label">{t('profile.city')}</label>
-                          <input
-                            id="city"
-                            name="city"
-                            type="text"
-                            className="input"
-                            value={formData.city}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="postal_code" className="form-label">{t('profile.postalCode')}</label>
-                          <input
-                            id="postal_code"
-                            name="postal_code"
-                            type="text"
-                            className="input"
-                            value={formData.postal_code}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="country" className="form-label">{t('profile.country')}</label>
-                          <input
-                            id="country"
-                            name="country"
-                            type="text"
-                            className="input"
-                            value={formData.country}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                          {t('profile.contactSectionTitle')}
-                        </h3>
-                        <p className="text-sm text-gray-500">{t('profile.contactSectionDescription')}</p>
-                      </div>
-                      <div>
-                        <label htmlFor="contact_email" className="form-label">{t('profile.contactEmail')}</label>
-                        <input
-                          id="contact_email"
-                          name="contact_email"
-                          type="email"
-                          className="input"
-                          value={formData.contact_email}
-                          onChange={handleInputChange}
-                          placeholder={t('profile.contactEmailPlaceholder')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6">
-                    <div>
-                      <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                        {t('profile.brandingSectionTitle')}
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500">{t('profile.brandingSectionDescription')}</p>
-                    </div>
-                    <div className="flex flex-col items-start gap-4">
-                      <label className="flex h-32 w-32 cursor-pointer items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white text-sm text-gray-500 transition hover:border-primary-300 hover:text-primary-600">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleLogoUpload}
-                        />
-                        {t('profile.logoUpload')}
-                      </label>
-                      {logoPreview ? (
-                        <div className="relative">
-                          <img
-                            src={logoPreview}
-                            alt="Logo preview"
-                            className="h-32 w-32 rounded-xl border border-gray-200 object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLogoFile(null)
-                              setLogoPreview(null)
-                              setFormData((prev) => ({ ...prev, logo_url: '' }))
-                            }}
-                            className="absolute right-2 top-2 rounded-full bg-white/90 p-1 text-gray-500 shadow hover:text-gray-700"
-                          >
-                            <span className="sr-only">{t('profile.logoRemove')}</span>
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500">{t('profile.logoEmpty')}</p>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500">{t('profile.logoHint')}</p>
-                  </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label htmlFor="name" className="form-label">{t('profile.businessName')}</label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    className="input"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                  />
                 </div>
-              </div>
 
-              <div className="flex justify-end gap-3">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="btn btn-primary"
-                >
-                  {saving ? t('profile.saving') : t('profile.save')}
-                </button>
+                <div>
+                  <label htmlFor="legal_name" className="form-label">{t('profile.legalEntityName')}</label>
+                  <input
+                    id="legal_name"
+                    name="legal_name"
+                    type="text"
+                    className="input"
+                    value={formData.legal_name}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="vat_number" className="form-label">{t('profile.vatNumber')}</label>
+                  <input
+                    id="vat_number"
+                    name="vat_number"
+                    type="text"
+                    className="input"
+                    value={formData.vat_number}
+                    onChange={handleInputChange}
+                  />
+                </div>
               </div>
             </form>
           </div>
         </section>
+
+        {/* Business Address Section */}
+        <section className="card">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">{t('profile.addressSectionTitle')}</h2>
+              <p className="mt-1 text-sm text-gray-500">{t('profile.addressSectionDescription')}</p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label htmlFor="street_line1" className="form-label">{t('profile.streetLine1')}</label>
+                <input
+                  id="street_line1"
+                  name="street_line1"
+                  type="text"
+                  className="input"
+                  value={formData.street_line1}
+                  onChange={handleInputChange}
+                  placeholder={t('profile.streetLine1Placeholder')}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="street_line2" className="form-label">{t('profile.streetLine2')}</label>
+                <input
+                  id="street_line2"
+                  name="street_line2"
+                  type="text"
+                  className="input"
+                  value={formData.street_line2}
+                  onChange={handleInputChange}
+                  placeholder={t('profile.streetLine2Placeholder')}
+                />
+              </div>
+              <div>
+                <label htmlFor="city" className="form-label">{t('profile.city')}</label>
+                <input
+                  id="city"
+                  name="city"
+                  type="text"
+                  className="input"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <label htmlFor="postal_code" className="form-label">{t('profile.postalCode')}</label>
+                <input
+                  id="postal_code"
+                  name="postal_code"
+                  type="text"
+                  className="input"
+                  value={formData.postal_code}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <label htmlFor="country" className="form-label">{t('profile.country')}</label>
+                <input
+                  id="country"
+                  name="country"
+                  type="text"
+                  className="input"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact & Social Section */}
+        <section className="card">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">{t('profile.contactSectionTitle')}</h2>
+              <p className="mt-1 text-sm text-gray-500">{t('profile.contactSectionDescription')}</p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <label htmlFor="contact_email" className="form-label">{t('profile.contactEmail')}</label>
+                <input
+                  id="contact_email"
+                  name="contact_email"
+                  type="email"
+                  className="input"
+                  value={formData.contact_email}
+                  onChange={handleInputChange}
+                  placeholder={t('profile.contactEmailPlaceholder')}
+                />
+              </div>
+              <div>
+                <label htmlFor="instagram_handle" className="form-label">{t('profile.instagramHandle')}</label>
+                <input
+                  id="instagram_handle"
+                  name="instagram_handle"
+                  type="text"
+                  className="input"
+                  value={formData.instagram_handle}
+                  onChange={handleInputChange}
+                  placeholder={t('profile.instagramHandlePlaceholder')}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Branding Section */}
+        <section className="card">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">{t('profile.brandingSectionTitle')}</h2>
+              <p className="mt-1 text-sm text-gray-500">{t('profile.brandingSectionDescription')}</p>
+            </div>
+            <div className="flex flex-col items-start gap-4">
+              <label className="flex h-32 w-32 cursor-pointer items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500 transition hover:border-primary-300 hover:text-primary-600">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLogoUpload}
+                />
+                {t('profile.logoUpload')}
+              </label>
+              {logoPreview ? (
+                <div className="relative">
+                  <img
+                    src={logoPreview}
+                    alt="Logo preview"
+                    className="h-32 w-32 rounded-xl border border-gray-200 object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLogoFile(null)
+                      setLogoPreview(null)
+                      setFormData((prev) => ({ ...prev, logo_url: '' }))
+                    }}
+                    className="absolute right-2 top-2 rounded-full bg-white/70 p-1 text-gray-500 shadow hover:text-gray-700"
+                  >
+                    <span className="sr-only">{t('profile.logoRemove')}</span>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">{t('profile.logoEmpty')}</p>
+              )}
+            </div>
+            <p className="text-xs text-gray-500">{t('profile.logoHint')}</p>
+          </div>
+        </section>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={saving}
+            onClick={handleSubmit}
+            className="btn btn-primary"
+          >
+            {saving ? t('profile.saving') : t('profile.save')}
+          </button>
+        </div>
 
         <section className="grid gap-6 md:grid-cols-2">
           <div className="card">

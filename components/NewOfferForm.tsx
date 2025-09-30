@@ -101,22 +101,22 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
 
     if (data.discount_type === 'percent') {
       if (data.discount_value < 5 || data.discount_value > 100 || data.discount_value % 5 !== 0) {
-        newErrors.discount_value = 'Discount must be between 5-100% in increments of 5'
+        newErrors.discount_value = t('offers.newFormValidationDiscount')
       }
     } else if (data.discount_value < 1) {
-      newErrors.discount_value = 'Discount must be at least €1'
+      newErrors.discount_value = t('offers.newFormValidationFixed')
     }
 
     if (!data.start_at) {
-      newErrors.start_at = 'Start date is required'
+      newErrors.start_at = t('offers.newFormValidationStartDate')
     }
 
     if (data.start_at && data.end_at && data.start_at > data.end_at) {
-      newErrors.end_at = 'End date must be after start date'
+      newErrors.end_at = t('offers.newFormValidationEndDate')
     }
 
     return newErrors
-  }, [])
+  }, [t])
 
   const generateScalingOffers = useCallback((baseOffer: NewOfferFormData): ScalingOffer[] => {
     if (!merchant) return []
@@ -168,7 +168,7 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
     setErrors(validationErrors)
 
     if (Object.keys(validationErrors).length > 0) {
-      toast.error('Please fix the errors below')
+      toast.error(t('offers.newFormValidationError'))
       return
     }
 
@@ -207,11 +207,12 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
       if (error) throw error
 
       const count = offersToCreate.length
-      toast.success(`Successfully created ${count} offer${count > 1 ? 's' : ''}`)
+      const plural = count > 1 ? 's' : ''
+      toast.success(t('offers.newFormSuccess', { count, plural }))
       onSuccess()
     } catch (error: any) {
       console.error('Error creating offers:', error)
-      toast.error(error?.message || 'Failed to create offers')
+      toast.error(error?.message || t('offers.newFormError'))
     } finally {
       setLoading(false)
     }
@@ -261,35 +262,35 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
             onClick={onClose}
             className="absolute right-4 top-4 rounded-full bg-gray-100 p-2 text-gray-500 hover:text-gray-700"
           >
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t('offers.newFormClose')}</span>
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
           <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900">Create New Offer</h2>
-            <p className="text-sm text-gray-500">Set your offer details. Title and description will be auto-generated.</p>
+            <h2 className="text-2xl font-semibold text-gray-900">{t('offers.newFormTitle')}</h2>
+            <p className="text-sm text-gray-500">{t('offers.newFormDescription')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
-                <label className="form-label" htmlFor="discount_type">Discount Type</label>
+                <label className="form-label" htmlFor="discount_type">{t('offers.newFormDiscountType')}</label>
                 <select
                   id="discount_type"
                   className="input"
                   value={formData.discount_type}
                   onChange={(event) => handleChange('discount_type', event.target.value as 'percent' | 'coupon')}
                 >
-                  <option value="percent">Percentage</option>
-                  <option value="coupon">Fixed Amount</option>
+                  <option value="percent">{t('offers.discountTypePercent')}</option>
+                  <option value="coupon">{t('offers.discountTypeCoupon')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="form-label" htmlFor="discount_value">
-                  Discount Value
+                  {t('offers.newFormDiscountValue')}
                   {formData.discount_type === 'percent' ? ' (%)' : ' (€)'}
                 </label>
                 <input
@@ -307,14 +308,14 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
                 ) : (
                   <p className="mt-1 text-xs text-gray-500">
                     {formData.discount_type === 'percent'
-                      ? 'Must be between 5-100% in increments of 5'
-                      : 'Minimum €1'}
+                      ? t('offers.newFormValidationDiscount')
+                      : t('offers.newFormValidationFixed')}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="form-label" htmlFor="min_followers">Minimum Followers</label>
+                <label className="form-label" htmlFor="min_followers">{t('offers.newFormMinFollowers')}</label>
                 <select
                   id="min_followers"
                   className="input"
@@ -323,14 +324,14 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
                 >
                   {FOLLOWER_TIERS.map(tier => (
                     <option key={tier.value} value={tier.value}>
-                      {tier.label} followers
+                      {tier.label} {t('offers.newFormFollowers')}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="form-label" htmlFor="start_at">Start Date *</label>
+                <label className="form-label" htmlFor="start_at">{t('offers.newFormStartDate')} *</label>
                 <input
                   id="start_at"
                   type="date"
@@ -342,7 +343,7 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
               </div>
 
               <div>
-                <label className="form-label" htmlFor="end_at">End Date (Optional)</label>
+                <label className="form-label" htmlFor="end_at">{t('offers.newFormEndDate')}</label>
                 <input
                   id="end_at"
                   type="date"
@@ -356,16 +357,16 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
 
             <div className="flex justify-end gap-3">
               <button type="button" onClick={onClose} className="btn btn-secondary">
-                Cancel
+                {t('offers.newFormCancel')}
               </button>
               <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Offer'}
+                {loading ? t('offers.newFormCreating') : t('offers.newFormCreate')}
               </button>
             </div>
           </form>
 
           <div className="mt-6 rounded-lg border border-gray-100 bg-gray-50 p-4">
-            <h3 className="text-sm font-semibold text-gray-900">Preview</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('offers.newFormPreview')}</h3>
             <div className="mt-2">
               <p className="text-sm font-medium text-gray-900">{previewTitle}</p>
               <p className="text-sm text-gray-600">{previewDescription}</p>
@@ -379,18 +380,18 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900/50 px-4 py-6">
           <div className="relative w-full max-w-2xl max-h-[90vh] rounded-2xl bg-white shadow-xl flex flex-col">
             <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900">Auto-adapt for Higher Tiers?</h3>
+              <h3 className="text-xl font-semibold text-gray-900">{t('offers.newFormScalingTitle')}</h3>
               <p className="text-sm text-gray-500">
-                We can automatically create additional offers for higher follower tiers with increased discounts.
+                {t('offers.newFormScalingDescription')}
               </p>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-4">
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <h4 className="text-sm font-medium text-gray-900">Base Offer</h4>
+                  <h4 className="text-sm font-medium text-gray-900">{t('offers.newFormScalingBaseOffer')}</h4>
                   <p className="text-sm text-gray-600">{previewTitle}</p>
-                  <p className="text-xs text-gray-500">{FOLLOWER_TIERS.find(t => t.value === formData.min_followers)?.label} followers</p>
+                  <p className="text-xs text-gray-500">{FOLLOWER_TIERS.find(t => t.value === formData.min_followers)?.label} {t('offers.newFormFollowers')}</p>
                 </div>
 
                 {scalingOffers.map((offer, index) => (
@@ -407,9 +408,9 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
                         className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
                       <div className="flex-1">
-                        <h4 className="text-sm font-medium text-gray-900">Auto-generated Offer</h4>
+                        <h4 className="text-sm font-medium text-gray-900">{t('offers.newFormScalingAutoGenerated')}</h4>
                         <p className="text-sm text-gray-600">{offer.title}</p>
-                        <p className="text-xs text-gray-500">{FOLLOWER_TIERS.find(t => t.value === offer.min_followers)?.label} followers</p>
+                        <p className="text-xs text-gray-500">{FOLLOWER_TIERS.find(t => t.value === offer.min_followers)?.label} {t('offers.newFormFollowers')}</p>
                       </div>
                     </div>
                   </div>
@@ -423,14 +424,14 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
                 className="btn btn-secondary"
                 disabled={loading}
               >
-                No, just create base offer
+{t('offers.newFormScalingCancel')}
               </button>
               <button
                 onClick={handleScalingConfirm}
                 className="btn btn-primary"
                 disabled={loading}
               >
-                {loading ? 'Creating...' : `Yes, create ${scalingOffers.filter(o => o.selected).length + 1} offers`}
+{loading ? t('offers.newFormCreating') : t('offers.newFormScalingConfirm', { count: scalingOffers.filter(o => o.selected).length + 1 })}
               </button>
             </div>
           </div>

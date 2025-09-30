@@ -1,16 +1,15 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signUp } from '@/lib/auth'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 import { useTranslation } from '@/components/LanguageProvider'
 import LanguageSelector from '@/components/LanguageSelector'
-import { uploadMerchantLogo } from '@/lib/storage'
-import { supabase } from '@/lib/supabase'
+import { callWebhook } from '@/lib/webhook-config'
 
-type Step = 1 | 2
+type Step = 1 | 2 | 3 | 'loading' | 'confirmation'
 
 interface FormData {
   email: string
@@ -19,7 +18,11 @@ interface FormData {
   name: string
   legal_name: string
   vat_number: string
-  address: string
+  street: string
+  city: string
+  postal_code: string
+  country: string
+  instagram_handle: string
 }
 
 type FormErrors = Partial<Record<keyof FormData, string>>
@@ -36,408 +39,353 @@ export default function SignupPage() {
     name: '',
     legal_name: '',
     vat_number: '',
-    address: '',
+    street: '',
+    city: '',
+    postal_code: '',
+    country: '',
+    instagram_handle: '',
   })
-  const [touched, setTouched] = useState<Record<keyof FormData, boolean>>({
-    email: false,
-    password: false,
-    confirmPassword: false,
-    name: false,
-    legal_name: false,
-    vat_number: false,
-    address: false,
-  })
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [touched, setTouched] = useState<Record<keyof FormData, boolean>>(
+    Object.keys(formData).reduce((acc, key) => ({ ...acc, [key]: false }), {}) as Record<
+      keyof FormData,
+      boolean
+    >
+  )
   const router = useRouter()
-  const { t, language } = useTranslation()
+  const { t } = useTranslation()
 
   const steps = useMemo(
     () => [
       { id: 1, label: t('signup.stepAccount'), description: t('signup.stepAccountDescription') },
       { id: 2, label: t('signup.stepBusiness'), description: t('signup.stepBusinessDescription') },
+      { id: 3, label: t('signup.stepAddress'), description: t('signup.stepAddressDescription') },
     ],
     [t]
   )
 
-  useEffect(() => {
-    if (!logoFile) {
-      setLogoPreview(null)
-      return
-    }
-
-    const nextPreview = URL.createObjectURL(logoFile)
-    setLogoPreview(nextPreview)
-
-    return () => {
-      URL.revokeObjectURL(nextPreview)
-    }
-  }, [logoFile])
-
-  const errors: FormErrors = useMemo(() => {
-    const result: FormErrors = {}
-
-    if (!formData.email) {
-      result.email = t('auth.emailRequired')
-    } else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/i.test(formData.email)) {
-      result.email = t('auth.emailInvalid')
-    }
-
-    if (!formData.password) {
-      result.password = t('auth.passwordRequired')
-    } else if (formData.password.length < 8) {
-      result.password = t('signup.passwordDescription')
-    }
-
-    if (!formData.confirmPassword) {
-      result.confirmPassword = t('signup.confirmPasswordRequired')
-    } else if (formData.password && formData.password !== formData.confirmPassword) {
-      result.confirmPassword = t('signup.passwordMismatch')
-    }
-
-    if (!formData.name) {
-      result.name = t('common.requiredField')
-    }
-
-    if (!formData.legal_name) {
-      result.legal_name = t('common.requiredField')
-    }
-
-    if (formData.vat_number && !VAT_REGEX.test(formData.vat_number.toUpperCase())) {
-      result.vat_number = t('signup.vatInvalid')
-    }
-
-    if (!formData.address) {
-      result.address = t('common.requiredField')
-    }
-
-    return result
-  }, [formData, t])
-
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === 'vat_number' ? value.toUpperCase() : value,
-    }))
-  }
-
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      setLogoFile(file)
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const markTouched = (fields: Array<keyof FormData>) => {
     setTouched((prev) => {
       const next = { ...prev }
-      fields.forEach((field) => {
-        next[field] = true
-      })
+      fields.forEach((field) => (next[field] = true))
       return next
     })
   }
 
-  const hasStepErrors = (fields: Array<keyof FormData>) =>
-    fields.some((field) => Boolean(errors[field]))
+  const errors: FormErrors = useMemo(() => {
+    const result: FormErrors = {}
+    if (step === 1) {
+      if (!formData.email) result.email = t('auth.emailRequired')
+      else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/i.test(formData.email)) result.email = t('auth.emailInvalid')
+      if (!formData.password) result.password = t('auth.passwordRequired')
+      else if (formData.password.length < 8) result.password = t('signup.passwordDescription')
+      if (!formData.confirmPassword) result.confirmPassword = t('signup.confirmPasswordRequired')
+      else if (formData.password !== formData.confirmPassword) result.confirmPassword = t('signup.passwordMismatch')
+    }
+    if (step === 2) {
+      if (!formData.name) result.name = t('common.requiredField')
+      if (!formData.legal_name) result.legal_name = t('common.requiredField')
+      if (formData.vat_number && !VAT_REGEX.test(formData.vat_number.toUpperCase())) result.vat_number = t('signup.vatInvalid')
+    }
+    if (step === 3) {
+      if (!formData.street) result.street = t('common.requiredField')
+      if (!formData.city) result.city = t('common.requiredField')
+      if (!formData.postal_code) result.postal_code = t('common.requiredField')
+      if (!formData.country) result.country = t('common.requiredField')
+    }
+    return result
+  }, [formData, step, t])
 
-  const handleStep1Submit = (event: React.FormEvent) => {
-    event.preventDefault()
-    const fields: Array<keyof FormData> = ['email', 'password', 'confirmPassword']
+  const handleStepSubmit = (fields: Array<keyof FormData>, nextStep: Step) => (e: React.FormEvent) => {
+    e.preventDefault()
     markTouched(fields)
-
-    if (hasStepErrors(fields)) {
+    if (Object.keys(errors).length > 0) {
       toast.error(t('auth.fixErrors'))
       return
     }
-
-    setStep(2)
+    setStep(nextStep)
   }
 
-  const handleStep2Submit = async (event: React.FormEvent) => {
-    event.preventDefault()
-    const fields: Array<keyof FormData> = ['name', 'legal_name', 'vat_number', 'address']
-    markTouched(fields)
-
-    if (hasStepErrors(fields)) {
+  // --- Final Submit ---
+  const handleFinalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    markTouched(['street', 'city', 'postal_code', 'country'])
+    if (Object.keys(errors).length > 0) {
       toast.error(t('auth.fixErrors'))
       return
     }
 
     setLoading(true)
-
+    setStep('loading')
     try {
-      const { merchantId } = await signUp(formData.email, formData.password, {
+      // 1. Create supabase auth user
+      const { auth } = await signUp(formData.email, formData.password)
+      if (!auth.user) throw new Error('Failed to create user account')
+
+      // 2. Send business info to webhook
+      const webhookResult = await callWebhook('SIGNUP_WEBHOOK', {
+        user_id: auth.user.id,
+        email: formData.email,
         name: formData.name,
         legal_name: formData.legal_name,
-        vat_number: formData.vat_number || undefined,
-        address: formData.address,
-        preferred_language: language,
+        vat_number: formData.vat_number,
+        street: formData.street,
+        city: formData.city,
+        postal_code: formData.postal_code,
+        country: formData.country,
+        instagram_handle: formData.instagram_handle,
       })
 
-      if (merchantId && logoFile) {
-        try {
-          const { path } = await uploadMerchantLogo(logoFile, merchantId)
-          await supabase
-            .from('merchants')
-            .update({ logo_url: path })
-            .eq('id', merchantId)
-          setLogoFile(null)
-          setLogoPreview(null)
-        } catch (uploadError: any) {
-          console.error('Error uploading logo during signup:', uploadError)
-          toast.error(uploadError?.message || t('profile.saveError'))
-        }
+      if (!webhookResult.success) {
+        throw new Error(webhookResult.error || 'Failed to create merchant profile')
       }
 
-      toast.success(t('signup.accountCreated'))
-      router.push('/')
-    } catch (error: any) {
-      toast.error(error?.message || t('signup.accountCreateError'))
+      // 3. Show confirmation message
+      setStep('confirmation')
+    } catch (err: unknown) {
+      console.error('Signup error:', err)
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.'
+      toast.error(errorMessage)
+      setStep(3) // back to form
     } finally {
       setLoading(false)
     }
   }
 
-  const renderError = (field: keyof FormData) =>
-    touched[field] && errors[field] ? (
-      <p className="form-error mt-1">{errors[field]}</p>
+  const StepIndicator = () =>
+    step === 1 || step === 2 || step === 3 ? (
+      <div className="mb-8 flex flex-col gap-4">
+        <div className="flex items-center justify-between text-sm font-medium text-gray-600">
+          <span>{t('signup.stepLabel', { current: step, total: steps.length })}</span>
+          <span>{steps[step - 1].label}</span>
+        </div>
+        <div className="h-2 rounded-full bg-gray-100">
+          <div
+            className="h-full rounded-full bg-primary-500 transition-all"
+            style={{ width: `${(step / steps.length) * 100}%` }}
+          />
+        </div>
+        <p className="text-sm text-gray-500">{steps[step - 1].description}</p>
+      </div>
     ) : null
 
-  const StepIndicator = () => (
-    <div className="mb-8 flex flex-col gap-4">
-      <div className="flex items-center justify-between text-sm font-medium text-gray-600">
-        <span>{t('signup.stepLabel', { current: step, total: steps.length })}</span>
-        <span>{steps[step - 1].label}</span>
-      </div>
-      <div className="h-2 rounded-full bg-gray-100">
-        <div
-          className="h-full rounded-full bg-primary-500 transition-all"
-          style={{ width: `${(step / steps.length) * 100}%` }}
-        />
-      </div>
-      <p className="text-sm text-gray-500">{steps[step - 1].description}</p>
-    </div>
-  )
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-6xl">
+    <div 
+      className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8 relative"
+      style={{
+        backgroundImage: 'url(/1271722.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/20"></div>
+      <div className="mx-auto w-full max-w-6xl relative z-10">
         <div className="mb-6 flex justify-end md:mb-8">
           <LanguageSelector />
         </div>
-        <div className="grid gap-12 rounded-3xl bg-white/70 p-8 shadow-lg backdrop-blur md:grid-cols-2 md:p-12">
+        <div className="grid gap-12 rounded-3xl bg-white/70 p-8 shadow-lg backdrop-blur-sm md:grid-cols-2 md:p-12">
           <div className="hidden flex-col justify-center md:flex">
             <span className="text-sm font-semibold uppercase tracking-widest text-primary-600">Ovio Merchant</span>
             <h1 className="mt-4 text-3xl font-bold text-gray-900 sm:text-4xl">{t('signup.heroTitle')}</h1>
             <p className="mt-4 text-base text-gray-600">{t('signup.heroDescription')}</p>
           </div>
-
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
-            <StepIndicator />
+            {step !== 'loading' && step !== 'confirmation' && <StepIndicator />}
 
-            {step === 1 ? (
-              <form className="space-y-6" onSubmit={handleStep1Submit} noValidate>
-                <div className="space-y-5">
-                  <div>
-                    <label htmlFor="email" className="form-label">
-                      {t('signup.emailLabel')}
-                    </label>
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      className={`input ${touched.email && errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
-                      placeholder={t('auth.emailPlaceholder')}
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      onBlur={() => markTouched(['email'])}
-                      aria-invalid={Boolean(touched.email && errors.email)}
-                    />
-                    {renderError('email')}
-                  </div>
-
-                  <div>
-                    <label htmlFor="password" className="form-label">
-                      {t('signup.passwordLabel')}
-                    </label>
-                    <input
-                      id="password"
-                      name="password"
-                      type="password"
-                      autoComplete="new-password"
-                      className={`input ${touched.password && errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
-                      placeholder={t('signup.passwordDescription')}
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      onBlur={() => markTouched(['password'])}
-                      aria-invalid={Boolean(touched.password && errors.password)}
-                    />
-                    {renderError('password')}
-                  </div>
-
-                  <div>
-                    <label htmlFor="confirmPassword" className="form-label">
-                      {t('signup.confirmPasswordLabel')}
-                    </label>
-                    <input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type="password"
-                      autoComplete="new-password"
-                      className={`input ${touched.confirmPassword && errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
-                      placeholder={t('signup.confirmPasswordLabel')}
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      onBlur={() => markTouched(['confirmPassword'])}
-                      aria-invalid={Boolean(touched.confirmPassword && errors.confirmPassword)}
-                    />
-                    {renderError('confirmPassword')}
-                  </div>
+            {step === 1 && (
+              <form className="space-y-6" onSubmit={handleStepSubmit(['email', 'password', 'confirmPassword'], 2)}>
+                <div>
+                  <input 
+                    name="email" 
+                    placeholder="Email" 
+                    value={formData.email} 
+                    onChange={handleInputChange} 
+                    className={`input ${touched.email && errors.email ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                  />
+                  {touched.email && errors.email && (
+                    <p className="form-error mt-1">{errors.email}</p>
+                  )}
                 </div>
-
-                <button type="submit" className="btn btn-primary w-full">
-                  {t('signup.continue')}
-                </button>
+                <div>
+                  <input 
+                    name="password" 
+                    type="password" 
+                    placeholder="Password" 
+                    value={formData.password} 
+                    onChange={handleInputChange} 
+                    className={`input ${touched.password && errors.password ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                  />
+                  {touched.password && errors.password && (
+                    <p className="form-error mt-1">{errors.password}</p>
+                  )}
+                </div>
+                <div>
+                  <input 
+                    name="confirmPassword" 
+                    type="password" 
+                    placeholder="Confirm Password" 
+                    value={formData.confirmPassword} 
+                    onChange={handleInputChange} 
+                    className={`input ${touched.confirmPassword && errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                  />
+                  {touched.confirmPassword && errors.confirmPassword && (
+                    <p className="form-error mt-1">{errors.confirmPassword}</p>
+                  )}
+                </div>
+                <button type="submit" className="btn btn-primary w-full">{t('signup.continue')}</button>
               </form>
-            ) : (
-              <form className="space-y-6" onSubmit={handleStep2Submit} noValidate>
-                <div className="space-y-5">
-                  <div>
-                    <label htmlFor="name" className="form-label">
-                      {t('signup.businessNameLabel')}
-                    </label>
-                    <input
-                      id="name"
-                      name="name"
-                      type="text"
-                      className={`input ${touched.name && errors.name ? 'border-red-500 focus:ring-red-500' : ''}`}
-                      placeholder={t('signup.businessNameLabel')}
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      onBlur={() => markTouched(['name'])}
-                      aria-invalid={Boolean(touched.name && errors.name)}
-                    />
-                    {renderError('name')}
-                  </div>
+            )}
 
-                  <div>
-                    <label htmlFor="legal_name" className="form-label">
-                      {t('signup.legalNameLabel')}
-                    </label>
-                    <input
-                      id="legal_name"
-                      name="legal_name"
-                      type="text"
-                      className={`input ${touched.legal_name && errors.legal_name ? 'border-red-500 focus:ring-red-500' : ''}`}
-                      placeholder={t('signup.legalNameLabel')}
-                      value={formData.legal_name}
-                      onChange={handleInputChange}
-                      onBlur={() => markTouched(['legal_name'])}
-                      aria-invalid={Boolean(touched.legal_name && errors.legal_name)}
-                    />
-                    {renderError('legal_name')}
-                  </div>
-
-                  <div>
-                    <label htmlFor="address" className="form-label">
-                      {t('signup.addressLabel')}
-                    </label>
-                    <input
-                      id="address"
-                      name="address"
-                      type="text"
-                      className={`input ${touched.address && errors.address ? 'border-red-500 focus:ring-red-500' : ''}`}
-                      placeholder={t('signup.addressLabel')}
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      onBlur={() => markTouched(['address'])}
-                      aria-invalid={Boolean(touched.address && errors.address)}
-                    />
-                    {renderError('address')}
-                  </div>
-
-                  <div>
-                    <label htmlFor="vat_number" className="form-label flex items-center justify-between">
-                      {t('signup.vatLabel')}
-                      <span className="text-xs font-normal text-gray-400">{t('common.optional')}</span>
-                    </label>
-                    <input
-                      id="vat_number"
-                      name="vat_number"
-                      type="text"
-                      className={`input ${touched.vat_number && errors.vat_number ? 'border-red-500 focus:ring-red-500' : ''}`}
-                      placeholder={t('signup.vatHint')}
-                      value={formData.vat_number}
-                      onChange={handleInputChange}
-                      onBlur={() => markTouched(['vat_number'])}
-                      aria-invalid={Boolean(touched.vat_number && errors.vat_number)}
-                    />
-                    {renderError('vat_number')}
-                  </div>
-
-                  <div>
-                    <label className="form-label flex items-center justify-between" htmlFor="logo">
-                      {t('signup.logoLabel')}
-                      <span className="text-xs font-normal text-gray-400">{t('common.optional')}</span>
-                    </label>
-                    <div className="flex items-start gap-4">
-                      <label className="flex h-24 w-24 cursor-pointer items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-gray-500 transition hover:border-primary-300 hover:text-primary-600">
-                        <input
-                          id="logo"
-                          name="logo"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleLogoUpload}
-                        />
-                        <span className="text-xs font-medium">{t('profile.logoUpload')}</span>
-                      </label>
-                      <div className="flex-1 space-y-2 text-xs text-gray-500">
-                        <p>{t('signup.logoHint')}</p>
-                        {logoPreview && (
-                          <div className="relative inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-2">
-                            <img src={logoPreview} alt="Logo preview" className="h-12 w-12 rounded object-cover" />
-                            <button
-                              type="button"
-                              className="text-xs font-medium text-red-600 hover:text-red-700"
-                              onClick={() => setLogoFile(null)}
-                            >
-                              {t('profile.logoRemove')}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+            {step === 2 && (
+              <form className="space-y-6" onSubmit={handleStepSubmit(['name', 'legal_name', 'vat_number'], 3)}>
+                <div>
+                  <input 
+                    name="name" 
+                    placeholder="Business name" 
+                    value={formData.name} 
+                    onChange={handleInputChange} 
+                    className={`input ${touched.name && errors.name ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                  />
+                  {touched.name && errors.name && (
+                    <p className="form-error mt-1">{errors.name}</p>
+                  )}
                 </div>
-
+                <div>
+                  <input 
+                    name="legal_name" 
+                    placeholder="Legal name" 
+                    value={formData.legal_name} 
+                    onChange={handleInputChange} 
+                    className={`input ${touched.legal_name && errors.legal_name ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                  />
+                  {touched.legal_name && errors.legal_name && (
+                    <p className="form-error mt-1">{errors.legal_name}</p>
+                  )}
+                </div>
+                <div>
+                  <input 
+                    name="vat_number" 
+                    placeholder="VAT number (optional)" 
+                    value={formData.vat_number} 
+                    onChange={handleInputChange} 
+                    className={`input ${touched.vat_number && errors.vat_number ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                  />
+                  {touched.vat_number && errors.vat_number && (
+                    <p className="form-error mt-1">{errors.vat_number}</p>
+                  )}
+                </div>
                 <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="btn btn-secondary flex-1"
-                  >
-                    {t('signup.back')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="btn btn-primary flex-1 justify-center"
-                  >
-                    {loading ? t('signup.creatingAccount') : t('signup.createAccount')}
-                  </button>
+                  <button type="button" onClick={() => setStep(1)} className="btn btn-secondary flex-1">{t('signup.back')}</button>
+                  <button type="submit" className="btn btn-primary flex-1">{t('signup.continue')}</button>
                 </div>
               </form>
             )}
 
+            {step === 3 && (
+              <form className="space-y-6" onSubmit={handleFinalSubmit}>
+                <div>
+                  <input 
+                    name="street" 
+                    placeholder="Street" 
+                    value={formData.street} 
+                    onChange={handleInputChange} 
+                    className={`input ${touched.street && errors.street ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                  />
+                  {touched.street && errors.street && (
+                    <p className="form-error mt-1">{errors.street}</p>
+                  )}
+                </div>
+                <div>
+                  <input 
+                    name="city" 
+                    placeholder="City" 
+                    value={formData.city} 
+                    onChange={handleInputChange} 
+                    className={`input ${touched.city && errors.city ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                  />
+                  {touched.city && errors.city && (
+                    <p className="form-error mt-1">{errors.city}</p>
+                  )}
+                </div>
+                <div>
+                  <input 
+                    name="postal_code" 
+                    placeholder="Postal code" 
+                    value={formData.postal_code} 
+                    onChange={handleInputChange} 
+                    className={`input ${touched.postal_code && errors.postal_code ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                  />
+                  {touched.postal_code && errors.postal_code && (
+                    <p className="form-error mt-1">{errors.postal_code}</p>
+                  )}
+                </div>
+                <div>
+                  <input 
+                    name="country" 
+                    placeholder="Country" 
+                    value={formData.country} 
+                    onChange={handleInputChange} 
+                    className={`input ${touched.country && errors.country ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                  />
+                  {touched.country && errors.country && (
+                    <p className="form-error mt-1">{errors.country}</p>
+                  )}
+                </div>
+                <div>
+                  <input 
+                    name="instagram_handle" 
+                    placeholder="Instagram handle (optional)" 
+                    value={formData.instagram_handle} 
+                    onChange={handleInputChange} 
+                    className="input" 
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <button type="button" onClick={() => setStep(2)} className="btn btn-secondary flex-1">{t('signup.back')}</button>
+                  <button type="submit" disabled={loading} className="btn btn-primary flex-1">{t('signup.createAccount')}</button>
+                </div>
+              </form>
+            )}
+
+            {step === 'loading' && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="relative">
+                  <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+                </div>
+                <p className="text-lg font-medium mt-4">{t('signup.settingUp')}</p>
+                <p className="text-sm text-gray-500 mt-2 text-center max-w-sm">{t('signup.pleaseWait')}</p>
+              </div>
+            )}
+
+            {step === 'confirmation' && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-lg font-medium text-gray-900">{t('signup.confirmAccount')}</p>
+                <p className="text-sm text-gray-500 mt-2 text-center max-w-sm">
+                  We've sent a confirmation link to <strong>{formData.email}</strong>. Please check your email and click the link to activate your merchant account.
+                </p>
+                <button
+                  className="btn btn-primary mt-6"
+                  onClick={() => router.push('/login')}
+                >
+                  {t('signup.accountConfirmed')}
+                </button>
+              </div>
+            )}
+
             <div className="mt-6 text-center text-sm text-gray-600">
               {t('signup.alreadyHaveAccount')}{' '}
-              <Link href="/" className="font-medium text-primary-600 hover:text-primary-700">
-                {t('signup.signIn')}
-              </Link>
+              <Link href="/" className="font-medium text-primary-600 hover:text-primary-700">{t('signup.signIn')}</Link>
             </div>
           </div>
         </div>

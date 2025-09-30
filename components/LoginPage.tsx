@@ -70,12 +70,22 @@ export default function LoginPage() {
     ) : null
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-6xl">
+    <div 
+      className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8 relative"
+      style={{
+        backgroundImage: 'url(/1271722.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/20"></div>
+      <div className="mx-auto w-full max-w-6xl relative z-10">
         <div className="mb-6 flex justify-end md:mb-8">
           <LanguageSelector />
         </div>
-        <div className="grid gap-12 rounded-3xl bg-white/70 p-8 shadow-lg backdrop-blur md:grid-cols-2 md:p-12">
+        <div className="grid gap-12 rounded-3xl bg-white/70 p-8 shadow-lg backdrop-blur-sm md:grid-cols-2 md:p-12">
           <div className="hidden flex-col justify-center md:flex">
             <span className="text-sm font-semibold uppercase tracking-widest text-primary-600">Ovio Merchant</span>
             <h1 className="mt-4 text-3xl font-bold text-gray-900 sm:text-4xl">{t('auth.heroTitle')}</h1>

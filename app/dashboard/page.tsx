@@ -120,8 +120,11 @@ export default function DashboardPageContent() {
 
     if (loadingContext || statsLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center">
-                <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-primary-600"></div>
+            <div className="flex min-h-screen items-center justify-center bg-white">
+                <div className="text-center">
+                    <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-primary-600 mx-auto"></div>
+                    <p className="mt-4 text-sm text-gray-600">Loading...</p>
+                </div>
             </div>
         )
     }
@@ -326,7 +329,7 @@ export default function DashboardPageContent() {
                         <div className="mt-6 grid gap-4 sm:grid-cols-2">
                             <Link
                                 href="/dashboard/offers"
-                                className="flex h-full flex-col justify-between rounded-xl border border-gray-200 p-4 transition hover:border-primary-200 hover:bg-primary-50/30"
+                                className="flex h-full flex-col justify-between rounded-xl border border-gray-200 p-4 transition hover:border-primary-200 hover:bg-primary-50/70"
                             >
                                 <div>
                                     <div className="flex items-center justify-between">
@@ -350,7 +353,7 @@ export default function DashboardPageContent() {
 
                             <Link
                                 href="/dashboard/billing"
-                                className="flex h-full flex-col justify-between rounded-xl border border-gray-200 p-4 transition hover:border-primary-200 hover:bg-primary-50/30"
+                                className="flex h-full flex-col justify-between rounded-xl border border-gray-200 p-4 transition hover:border-primary-200 hover:bg-primary-50/70"
                             >
                                 <div>
                                     <div

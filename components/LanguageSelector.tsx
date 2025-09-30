@@ -34,8 +34,8 @@ export default function LanguageSelector({ align = 'right', compact = false, cla
   const current = LANGUAGE_OPTIONS.find((option) => option.code === language)
 
   const buttonClasses = compact
-    ? 'inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-1.5 text-sm font-medium text-gray-600 hover:border-primary-200 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500'
-    : 'inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:border-primary-200 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500'
+    ? 'inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2 h-12 text-sm font-medium text-gray-600 hover:border-primary-200 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500'
+    : 'inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 h-12 text-sm font-medium text-gray-600 hover:border-primary-200 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500'
 
   return (
     <div ref={containerRef} className={`relative ${className ?? ''}`}>

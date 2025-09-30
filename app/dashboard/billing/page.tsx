@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout'
 import { useTranslation } from '@/components/LanguageProvider'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { callWebhook } from '@/lib/webhook-config'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'react-hot-toast'
 
@@ -138,12 +139,7 @@ export default function BillingPage() {
     async (action: BillingActionType, quantity?: number) => {
       if (!merchant) return
 
-      const webhookUrl = process.env.NEXT_PUBLIC_BILLING_WEBHOOK_URL
-
-      if (!webhookUrl) {
-        toast.error(t('billing.webhookMissingError'))
-        return
-      }
+      // Use centralized webhook configuration
 
       if (!merchant.owner_user_id) {
         toast.error(t('billing.actionError'))
@@ -167,19 +163,13 @@ export default function BillingPage() {
           payload.quantity = quantity
         }
 
-        const response = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        })
+        const webhookResult = await callWebhook('BILLING_WEBHOOK', payload)
 
-        if (!response.ok) {
-          throw new Error(`Webhook responded with status ${response.status}`)
+        if (!webhookResult.success) {
+          throw new Error(webhookResult.error || 'Webhook call failed')
         }
 
-        const result = await response.json()
+        const result = webhookResult.data
 
         if (result?.url) {
           toast.success(t('billing.actionRedirecting'))
@@ -209,8 +199,11 @@ export default function BillingPage() {
 
   if (loading || billingLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-primary-600"></div>
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-sm text-gray-600">Loading...</p>
+        </div>
       </div>
     )
   }

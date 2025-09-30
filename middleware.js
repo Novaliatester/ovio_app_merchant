@@ -33,16 +33,20 @@ export async function middleware(req) {
     data: { session },
   } = await supabase.auth.getSession()
 
-  console.log('Middleware session check:', {
-    path: req.nextUrl.pathname,
-    hasSession: !!session,
-    userId: session?.user?.id,
-    storageKey: 'ovio-merchant-auth'
-  })
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Middleware session check:', {
+      path: req.nextUrl.pathname,
+      hasSession: !!session,
+      userId: session?.user?.id,
+      storageKey: 'ovio-merchant-auth'
+    })
+  }
 
   // Only protect /dashboard routes
   if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-    console.log('No session found, redirecting to /login')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('No session found, redirecting to /login')
+    }
     return NextResponse.redirect(new URL('/login', req.url))
   }
 

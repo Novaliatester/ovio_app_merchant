@@ -97,7 +97,7 @@ export default function OffersPage() {
         .select('*')
         .eq('merchant_id', merchant.id)
         .eq('deleted', false)
-        .order('created_at', { ascending: false })
+        .order('min_followers', { ascending: false })
 
       console.log('Fetched offers:', { data, error })
 
@@ -241,7 +241,7 @@ export default function OffersPage() {
     const params = new URLSearchParams(window.location.search)
     if (params.get('view') === 'create') {
       setEditingOffer(null)
-      setFormOpen(true)
+      setNewFormOpen(true)
       router.replace('/dashboard/offers', { scroll: false })
     }
   }, [isSuspended, router])
@@ -271,7 +271,7 @@ export default function OffersPage() {
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Create New Offer
+                {t('offers.createOffer')}
               </button>
             </div>
           )}
@@ -462,7 +462,7 @@ export default function OffersPage() {
           onClick={openNewCreateForm}
           className="fixed bottom-4 left-4 right-4 z-40 rounded-full bg-primary-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 sm:hidden"
         >
-          Create New Offer
+          {t('offers.createOffer')}
         </button>
       )}
     </DashboardLayout>
