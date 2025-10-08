@@ -3,8 +3,9 @@
 import { useAuth } from '@/components/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { useTranslation } from '@/components/LanguageProvider'
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
+import { Offer } from '@/lib/auth'
 
 interface NewOfferFormData {
   discount_type: 'percent' | 'coupon'
@@ -29,6 +30,7 @@ interface ScalingOffer {
 interface NewOfferFormProps {
   onClose: () => void
   onSuccess: () => void
+  offer?: Offer | null // Add optional offer prop for editing
 }
 
 const FOLLOWER_TIERS: FollowerTier[] = [
@@ -52,16 +54,34 @@ const SCALING_RULES = {
   }
 }
 
-export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) {
+export default function NewOfferForm({ onClose, onSuccess, offer }: NewOfferFormProps) {
   const { merchant } = useAuth()
   const { t, locale } = useTranslation()
-  const [formData, setFormData] = useState<NewOfferFormData>({
-    discount_type: 'percent',
-    discount_value: 10,
-    min_followers: 1000,
-    start_at: new Date().toISOString().split('T')[0],
-    end_at: '',
-  })
+  
+  // Initialize form data based on whether we're editing or creating
+  const initialFormData: NewOfferFormData = useMemo(() => {
+    if (offer) {
+      // Editing existing offer
+      return {
+        discount_type: offer.discount_type,
+        discount_value: offer.discount_value,
+        min_followers: offer.min_followers,
+        start_at: offer.start_at ? offer.start_at.split('T')[0] : new Date().toISOString().split('T')[0],
+        end_at: offer.end_at ? offer.end_at.split('T')[0] : '',
+      }
+    } else {
+      // Creating new offer
+      return {
+        discount_type: 'percent',
+        discount_value: 10,
+        min_followers: 1000,
+        start_at: new Date().toISOString().split('T')[0],
+        end_at: '',
+      }
+    }
+  }, [offer])
+
+  const [formData, setFormData] = useState<NewOfferFormData>(initialFormData)
   const [errors, setErrors] = useState<Partial<Record<keyof NewOfferFormData, string>>>({})
   const [loading, setLoading] = useState(false)
   const [showScalingModal, setShowScalingModal] = useState(false)
@@ -71,6 +91,12 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
     () => new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }),
     [locale]
   )
+
+  // Update form data when offer prop changes
+  useEffect(() => {
+    setFormData(initialFormData)
+    setErrors({})
+  }, [initialFormData])
 
   const generateTitle = useCallback((discountType: string, discountValue: number, businessName: string) => {
     if (discountType === 'percent') {
@@ -172,7 +198,13 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
       return
     }
 
-    // Generate scaling offers
+    // If editing an existing offer, update it directly
+    if (offer) {
+      await updateOffer()
+      return
+    }
+
+    // For new offers, generate scaling offers
     const offers = generateScalingOffers(formData)
     
     if (offers.length > 0) {
@@ -180,6 +212,39 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
       setShowScalingModal(true)
     } else {
       await createOffers([formData])
+    }
+  }
+
+  const updateOffer = async () => {
+    if (!merchant || !offer) return
+
+    setLoading(true)
+    try {
+      const payload = {
+        title: generateTitle(formData.discount_type, formData.discount_value, merchant.name),
+        description: generateDescription(formData.discount_type, formData.discount_value),
+        discount_type: formData.discount_type,
+        discount_value: formData.discount_value,
+        min_followers: formData.min_followers,
+        start_at: formData.start_at || null,
+        end_at: formData.end_at || null,
+        is_active: offer.is_active // Keep the current status
+      }
+
+      const { error } = await supabase
+        .from('offers')
+        .update(payload)
+        .eq('id', offer.id)
+
+      if (error) throw error
+
+      toast.success(t('offers.formUpdated'))
+      onSuccess()
+    } catch (error: unknown) {
+      console.error('Error updating offer:', error)
+      toast.error(error instanceof Error ? error.message : t('offers.saveError'))
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -269,8 +334,12 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
           </button>
 
           <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900">{t('offers.newFormTitle')}</h2>
-            <p className="text-sm text-gray-500">{t('offers.newFormDescription')}</p>
+            <h2 className="text-2xl font-semibold text-gray-900">
+              {offer ? t('offers.formEditTitle') : t('offers.newFormTitle')}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {offer ? t('offers.formDescription') : t('offers.newFormDescription')}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -360,7 +429,10 @@ export default function NewOfferForm({ onClose, onSuccess }: NewOfferFormProps) 
                 {t('offers.newFormCancel')}
               </button>
               <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? t('offers.newFormCreating') : t('offers.newFormCreate')}
+                {loading 
+                  ? (offer ? t('offers.formSaving') : t('offers.newFormCreating'))
+                  : (offer ? t('offers.formSave') : t('offers.newFormCreate'))
+                }
               </button>
             </div>
           </form>

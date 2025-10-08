@@ -23,6 +23,7 @@ interface FormData {
   postal_code: string
   country: string
   instagram_handle: string
+  acceptTerms: boolean
 }
 
 type FormErrors = Partial<Record<keyof FormData, string>>
@@ -44,6 +45,7 @@ export default function SignupPage() {
     postal_code: '',
     country: '',
     instagram_handle: '',
+    acceptTerms: false,
   })
   const [touched, setTouched] = useState<Record<keyof FormData, boolean>>(
     Object.keys(formData).reduce((acc, key) => ({ ...acc, [key]: false }), {}) as Record<
@@ -64,8 +66,8 @@ export default function SignupPage() {
   )
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    const { name, value, type, checked } = event.target
+    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
   }
 
   const markTouched = (fields: Array<keyof FormData>) => {
@@ -96,6 +98,8 @@ export default function SignupPage() {
       if (!formData.city) result.city = t('common.requiredField')
       if (!formData.postal_code) result.postal_code = t('common.requiredField')
       if (!formData.country) result.country = t('common.requiredField')
+      if (!formData.instagram_handle) result.instagram_handle = t('signup.instagramRequired')
+      if (!formData.acceptTerms) result.acceptTerms = t('signup.termsRequired')
     }
     return result
   }, [formData, step, t])
@@ -113,7 +117,7 @@ export default function SignupPage() {
   // --- Final Submit ---
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    markTouched(['street', 'city', 'postal_code', 'country'])
+    markTouched(['street', 'city', 'postal_code', 'country', 'instagram_handle', 'acceptTerms'])
     if (Object.keys(errors).length > 0) {
       toast.error(t('auth.fixErrors'))
       return
@@ -338,14 +342,46 @@ export default function SignupPage() {
                   )}
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('signup.instagramLabel')}
+                  </label>
                   <input 
                     name="instagram_handle" 
                     placeholder={t('signup.instagramPlaceholder')} 
                     value={formData.instagram_handle} 
                     onChange={handleInputChange} 
-                    className="input" 
+                    className={`input ${touched.instagram_handle && errors.instagram_handle ? 'border-red-500 focus:ring-red-500' : ''}`} 
                   />
+                  <p className="text-sm text-gray-600 mt-1">
+                    {t('signup.instagramDescription')}
+                  </p>
+                  {touched.instagram_handle && errors.instagram_handle && (
+                    <p className="form-error mt-1">{errors.instagram_handle}</p>
+                  )}
                 </div>
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    name="acceptTerms"
+                    checked={formData.acceptTerms}
+                    onChange={handleInputChange}
+                    className={`mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 ${touched.acceptTerms && errors.acceptTerms ? 'border-red-500' : ''}`}
+                  />
+                  <label className="text-sm text-gray-700">
+                    {t('signup.acceptTerms')}{' '}
+                    <a
+                      href="https://ovioapp.es/terms-of-service-ovio-merchant"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-600 hover:text-primary-700 underline"
+                    >
+                      {t('signup.termsAndConditions')}
+                    </a>
+                  </label>
+                </div>
+                {touched.acceptTerms && errors.acceptTerms && (
+                  <p className="form-error mt-1">{errors.acceptTerms}</p>
+                )}
                 <div className="flex gap-4">
                   <button type="button" onClick={() => setStep(2)} className="btn btn-secondary flex-1">{t('signup.back')}</button>
                   <button type="submit" disabled={loading} className="btn btn-primary flex-1">{t('signup.createAccount')}</button>

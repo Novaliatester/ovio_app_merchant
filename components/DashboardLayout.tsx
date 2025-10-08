@@ -226,7 +226,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <button
                     type="button"
                     onClick={() => setProfileMenuOpen((prev) => !prev)}
-                    className="flex items-center rounded-full border border-gray-200 bg-white px-4 h-12 text-left transition hover:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="flex items-center rounded-full border border-gray-200 bg-white px-4 h-12 text-left transition hover:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500"ç
                   >
                     <div className="hidden pr-3 text-right text-sm text-gray-600 sm:block">
                       <p className="font-medium text-gray-900">{merchant?.name || t('navigation.profile')}</p>

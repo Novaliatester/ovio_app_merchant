@@ -10,23 +10,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'react-hot-toast'
 import { useTranslation } from '@/components/LanguageProvider'
 
-interface OfferFormData {
-  title: string
-  description: string
-  discount_type: 'percent' | 'coupon'
-  discount_value: number
-  min_followers: number
-  start_at: string
-  end_at: string
-  is_active: boolean
-}
-
-interface OfferFieldErrors {
-  title?: string
-  discount_value?: string
-  start_at?: string
-  end_at?: string
-}
 
 export const runtime = 'nodejs'
 
@@ -36,7 +19,6 @@ export default function OffersPage() {
   const { t, locale } = useTranslation()
   const [offers, setOffers] = useState<Offer[]>([])
   const [offersLoading, setOffersLoading] = useState(true)
-  const [formOpen, setFormOpen] = useState(false)
   const [newFormOpen, setNewFormOpen] = useState(false)
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null)
   const [updating, setUpdating] = useState<number | null>(null)
@@ -118,11 +100,11 @@ export default function OffersPage() {
   }, [merchant, fetchOffers])
 
   useEffect(() => {
-    if (isSuspended && formOpen) {
-      setFormOpen(false)
+    if (isSuspended && newFormOpen) {
+      setNewFormOpen(false)
       setEditingOffer(null)
     }
-  }, [isSuspended, formOpen])
+  }, [isSuspended, newFormOpen])
 
   const toggleOfferStatus = async (offerId: number, currentStatus: boolean) => {
     if (isSuspended) return
@@ -207,21 +189,18 @@ export default function OffersPage() {
 
   const openNewCreateForm = () => {
     if (isSuspended) return
+    setEditingOffer(null)
     setNewFormOpen(true)
   }
 
   const openEditForm = (offer: Offer) => {
     if (isSuspended) return
     setEditingOffer(offer)
-    setFormOpen(true)
-  }
-
-  const closeForm = () => {
-    setEditingOffer(null)
-    setFormOpen(false)
+    setNewFormOpen(true)
   }
 
   const closeNewForm = () => {
+    setEditingOffer(null)
     setNewFormOpen(false)
   }
 
@@ -432,19 +411,9 @@ export default function OffersPage() {
         )}
       </div>
 
-      {formOpen && (
-        <OfferForm
-          offer={editingOffer}
-          onClose={closeForm}
-          onSuccess={() => {
-            closeForm()
-            fetchOffers()
-          }}
-        />
-      )}
-
       {newFormOpen && (
         <NewOfferForm
+          offer={editingOffer}
           onClose={closeNewForm}
           onSuccess={() => {
             closeNewForm()
@@ -452,7 +421,7 @@ export default function OffersPage() {
           }}
         />
       )}
-      {!isSuspended && !formOpen && !newFormOpen && (
+      {!isSuspended && !newFormOpen && (
         <button
           onClick={openNewCreateForm}
           className="fixed bottom-4 left-4 right-4 z-40 rounded-full bg-primary-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 sm:hidden"
@@ -472,304 +441,6 @@ function OffersPageFallback() {
   )
 }
 
-interface OfferFormProps {
-  offer: Offer | null
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function OfferForm({ offer, onClose, onSuccess }: OfferFormProps) {
-  const { merchant } = useAuth()
-  const { t, locale } = useTranslation()
-  const initialData: OfferFormData = useMemo(() => {
-    const discountType = offer?.discount_type || 'percent'
-    const fallbackValue = discountType === 'percent' ? 10 : 5
-    return {
-      title: offer?.title || '',
-      description: offer?.description || '',
-      discount_type: discountType,
-      discount_value: offer?.discount_value ?? fallbackValue,
-      min_followers: offer?.min_followers || 0,
-      start_at: offer?.start_at ? offer.start_at.split('T')[0] : '',
-      end_at: offer?.end_at ? offer.end_at.split('T')[0] : '',
-      is_active: offer?.is_active ?? true
-    }
-  }, [offer])
-  const [formData, setFormData] = useState<OfferFormData>(initialData)
-  const [errors, setErrors] = useState<OfferFieldErrors>({})
-  const [loading, setLoading] = useState(false)
-  const currencyFormatter = useMemo(
-    () => new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }),
-    [locale]
-  )
-
-  const computeErrors = useCallback((data: OfferFormData): OfferFieldErrors => {
-    const nextErrors: OfferFieldErrors = {}
-
-    if (!data.title.trim()) {
-      nextErrors.title = t('offers.validationTitle')
-    }
-
-    if (data.discount_type === 'percent') {
-      if (data.discount_value < 5 || data.discount_value > 100 || data.discount_value % 5 !== 0) {
-        nextErrors.discount_value = t('offers.validationPercentage')
-      }
-    } else if (data.discount_value < 1) {
-      nextErrors.discount_value = t('offers.validationFixed')
-    }
-
-    if (data.start_at && data.end_at && data.start_at > data.end_at) {
-      nextErrors.end_at = t('offers.validationDates')
-    }
-
-    return nextErrors
-  }, [t])
-
-  useEffect(() => {
-    setFormData(initialData)
-    setErrors(offer ? computeErrors(initialData) : {})
-  }, [initialData, computeErrors, offer])
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
-    if (!merchant) return
-
-    const nextErrors = computeErrors(formData)
-    setErrors(nextErrors)
-
-    if (Object.keys(nextErrors).length > 0) {
-      toast.error(t('auth.fixErrors'))
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const payload = {
-        merchant_id: merchant.id,
-        title: formData.title.trim(),
-        description: formData.description || null,
-        discount_type: formData.discount_type,
-        discount_value: formData.discount_value,
-        min_followers: formData.min_followers,
-        start_at: formData.start_at || null,
-        end_at: formData.end_at || null,
-        is_active: formData.is_active
-      }
-
-      if (offer) {
-        const { error } = await supabase
-          .from('offers')
-          .update(payload)
-          .eq('id', offer.id)
-
-        if (error) throw error
-        toast.success(t('offers.formUpdated'))
-      } else {
-        const { error } = await supabase
-          .from('offers')
-          .insert(payload)
-
-        if (error) throw error
-        toast.success(t('offers.formCreated'))
-      }
-
-      onSuccess()
-    } catch (error: unknown) {
-      console.error('Error saving offer:', error)
-      toast.error(error instanceof Error ? error.message : t('offers.saveError'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleChange = <K extends keyof OfferFormData>(field: K, value: OfferFormData[K]) => {
-    setFormData((prev) => {
-      const next = {
-        ...prev,
-        [field]: value
-      }
-      setErrors(computeErrors(next))
-      return next
-    })
-  }
-
-  const previewValue = useMemo(() => {
-    if (formData.discount_type === 'percent') {
-      return t('offers.discountPercent', { value: formData.discount_value })
-    }
-    return t('offers.discountFixed', { amount: currencyFormatter.format(formData.discount_value || 0) })
-  }, [currencyFormatter, formData.discount_type, formData.discount_value, t])
-
-  const previewBusiness = useMemo(
-    () => merchant?.name || t('offers.previewBusinessFallback'),
-    [merchant?.name, t]
-  )
-  const previewText = useMemo(
-    () => t('offers.previewDescription', { value: previewValue, business: previewBusiness }),
-    [previewBusiness, previewValue, t]
-  )
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 px-4 py-6">
-      <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-full bg-gray-100 p-2 text-gray-500 hover:text-gray-700"
-        >
-          <span className="sr-only">{t('common.close')}</span>
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
-        <div className="mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            {offer ? t('offers.formEditTitle') : t('offers.formCreateTitle')}
-          </h2>
-          <p className="text-sm text-gray-500">{t('offers.formDescription')}</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="form-label" htmlFor="title">{t('offers.formOfferTitle')}</label>
-              <input
-                id="title"
-                type="text"
-                className={`input ${errors.title ? 'border-red-500 focus:ring-red-500' : ''}`}
-                value={formData.title}
-                onChange={(event) => handleChange('title', event.target.value)}
-                placeholder={t('offers.formOfferPlaceholder')}
-              />
-              {errors.title ? <p className="form-error mt-1">{errors.title}</p> : null}
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="form-label" htmlFor="description">{t('offers.formDescriptionLabel')}</label>
-              <textarea
-                id="description"
-                rows={3}
-                className="input"
-                value={formData.description}
-                onChange={(event) => handleChange('description', event.target.value)}
-                placeholder={t('offers.formDescriptionPlaceholder')}
-              />
-            </div>
-
-            <div>
-              <label className="form-label" htmlFor="discount_type">{t('offers.formDiscountType')}</label>
-              <select
-                id="discount_type"
-                className="input"
-                value={formData.discount_type}
-                onChange={(event) => handleChange('discount_type', event.target.value as OfferFormData['discount_type'])}
-              >
-                <option value="percent">{t('offers.discountTypePercent')}</option>
-                <option value="coupon">{t('offers.discountTypeCoupon')}</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="form-label" htmlFor="discount_value">{t('offers.formDiscountValue')}</label>
-              <input
-                id="discount_value"
-                type="number"
-                min={formData.discount_type === 'percent' ? 5 : 1}
-                max={formData.discount_type === 'percent' ? 100 : undefined}
-                step={formData.discount_type === 'percent' ? 5 : 1}
-                className={`input ${errors.discount_value ? 'border-red-500 focus:ring-red-500' : ''}`}
-                value={formData.discount_value}
-                onChange={(event) => handleChange('discount_value', Number(event.target.value) || 0)}
-              />
-              {errors.discount_value ? (
-                <p className="form-error mt-1">{errors.discount_value}</p>
-              ) : (
-                <p className="mt-1 text-xs text-gray-500">
-                  {formData.discount_type === 'percent'
-                    ? t('offers.validationPercentage')
-                    : t('offers.validationFixed')}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="form-label" htmlFor="min_followers">{t('offers.formMinFollowers')}</label>
-              <input
-                id="min_followers"
-                type="number"
-                min={0}
-                className="input"
-                value={formData.min_followers}
-                onChange={(event) => handleChange('min_followers', Number(event.target.value) || 0)}
-              />
-            </div>
-
-            <div>
-              <label className="form-label" htmlFor="start_at">{t('offers.formStartDate')}</label>
-              <input
-                id="start_at"
-                type="date"
-                className="input"
-                value={formData.start_at}
-                onChange={(event) => handleChange('start_at', event.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="form-label" htmlFor="end_at">{t('offers.formEndDate')}</label>
-              <input
-                id="end_at"
-                type="date"
-                className={`input ${errors.end_at ? 'border-red-500 focus:ring-red-500' : ''}`}
-                value={formData.end_at}
-                onChange={(event) => handleChange('end_at', event.target.value)}
-              />
-              {errors.end_at ? <p className="form-error mt-1">{errors.end_at}</p> : null}
-            </div>
-
-            <div className="sm:col-span-2">
-              <span className="form-label">{t('offers.formStatus')}</span>
-              <div className="mt-2 flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{formData.is_active ? t('common.active') : t('common.inactive')}</p>
-                  <p className="text-xs text-gray-500">{formData.is_active ? t('offers.formStatusActive') : t('offers.formStatusInactive')}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleChange('is_active', !formData.is_active)}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition ${
-                    formData.is_active ? 'bg-primary-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-                      formData.is_active ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="btn btn-secondary">
-              {t('common.cancel')}
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? t('offers.formSaving') : offer ? t('offers.formSave') : t('offers.formCreate')}
-            </button>
-          </div>
-        </form>
-
-        <div className="mt-6 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="text-sm font-semibold text-gray-900">{t('offers.previewHeading')}</h3>
-          <p className="mt-1 text-sm text-gray-600">{previewText}</p>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function EmptyState({ onCreate, disabled = false }: { onCreate: () => void; disabled?: boolean }) {
   const { t } = useTranslation()

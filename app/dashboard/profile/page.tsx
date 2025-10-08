@@ -47,6 +47,7 @@ export default function ProfilePage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [showDeactivateModal, setShowDeactivateModal] = useState(false)
+  const [editingSection, setEditingSection] = useState<string | null>(null)
   const redirectingRef = useRef(false)
 
   useEffect(() => {
@@ -153,6 +154,99 @@ export default function ProfilePage() {
     () => merchant ? Object.prototype.hasOwnProperty.call(merchant, 'contact_email') : false,
     [merchant]
   )
+
+  const handleSectionSave = async (section: string) => {
+    if (!merchant) return
+
+    setSaving(true)
+
+    try {
+      let logoUrl: string | null = formData.logo_url ? formData.logo_url : null
+      let signedUrl: string | null = null
+
+      if (logoFile && section === 'branding') {
+        const { path, signedUrl: uploadedSigned } = await uploadMerchantLogo(logoFile, merchant.id)
+        logoUrl = path
+        signedUrl = uploadedSigned
+      }
+
+      const updatePayload: Record<string, unknown> = {}
+
+      // Only update fields relevant to the section being saved
+      if (section === 'identity') {
+        updatePayload.name = formData.name
+        updatePayload.legal_name = formData.legal_name || null
+        updatePayload.vat_number = formData.vat_number || null
+      }
+
+      if (section === 'address') {
+        if (supportsStreet) {
+          updatePayload.street = mergeStreetLines({
+            street_line1: formData.street_line1,
+            street_line2: formData.street_line2,
+          })
+        }
+        if (supportsCity) {
+          updatePayload.city = formData.city.trim() || null
+        }
+        if (supportsPostalCode) {
+          updatePayload.postal_code = formData.postal_code.trim() || null
+        }
+        if (supportsCountry) {
+          updatePayload.country = formData.country.trim() || null
+        }
+      }
+
+      if (section === 'contact') {
+        if (supportsContactEmail) {
+          updatePayload.contact_email = formData.contact_email || null
+        }
+      }
+
+      if (section === 'profile') {
+        updatePayload.instagram_handle = formData.instagram_handle.trim() || null
+      }
+
+      if (section === 'branding') {
+        updatePayload.logo_url = logoUrl
+      }
+
+      if (Object.keys(updatePayload).length === 0) {
+        toast.error('No changes to save')
+        return
+      }
+
+      const { error } = await supabase
+        .from('merchants')
+        .update(updatePayload)
+        .eq('id', merchant.id)
+
+      if (error) throw error
+
+      await refreshMerchant()
+      
+      if (section === 'branding' && logoUrl !== undefined) {
+        setFormData((prev) => ({ ...prev, logo_url: logoUrl || '' }))
+        if (signedUrl) {
+          setLogoPreview(signedUrl)
+        } else if (logoUrl && logoUrl.startsWith('http')) {
+          setLogoPreview(logoUrl)
+        } else {
+          const fallbackSigned = logoUrl ? await getMerchantLogoUrl(logoUrl).catch(() => null) : null
+          setLogoPreview(fallbackSigned)
+        }
+        setLogoFile(null)
+      }
+      
+      setEditingSection(null)
+      toast.success(t('profile.saveSuccess'))
+    } catch (error: unknown) {
+      console.error('Error updating profile:', error)
+      toast.error(error instanceof Error ? error.message : t('profile.saveError'))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -303,63 +397,199 @@ export default function ProfilePage() {
           <p className="mt-2 text-gray-600">{t('profile.subtitle')}</p>
         </header>
 
+        {/* Profile Header Section - Instagram & Profile Picture */}
+        <section className="card">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">{t('profile.profileHeaderTitle')}</h2>
+                <p className="mt-1 text-sm text-gray-500">{t('profile.profileHeaderDescription')}</p>
+              </div>
+              <button
+                onClick={() => setEditingSection(editingSection === 'profile' ? null : 'profile')}
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {editingSection === 'profile' ? t('profile.cancel') : t('profile.edit')}
+              </button>
+            </div>
+            
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Profile Picture */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('profile.profilePicture')}
+                </label>
+                <div className="flex flex-col items-start gap-4">
+                  <label className="flex h-32 w-32 cursor-pointer items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500 transition hover:border-primary-300 hover:text-primary-600">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoUpload}
+                    />
+                    {t('profile.logoUpload')}
+                  </label>
+                  {logoPreview ? (
+                    <div className="relative">
+                      <Image
+                        src={logoPreview}
+                        alt="Logo preview"
+                        width={128}
+                        height={128}
+                        className="h-32 w-32 rounded-xl border border-gray-200 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLogoFile(null)
+                          setLogoPreview(null)
+                          setFormData((prev) => ({ ...prev, logo_url: '' }))
+                        }}
+                        className="absolute right-2 top-2 rounded-full bg-white/70 p-1 text-gray-500 shadow hover:text-gray-700"
+                      >
+                        <span className="sr-only">{t('profile.logoRemove')}</span>
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">{t('profile.logoEmpty')}</p>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">{t('profile.logoHint')}</p>
+              </div>
+
+              {/* Instagram Handle */}
+              <div>
+                <label htmlFor="instagram_handle" className="form-label">{t('profile.instagramHandle')}</label>
+                <input
+                  id="instagram_handle"
+                  name="instagram_handle"
+                  type="text"
+                  className="input"
+                  value={formData.instagram_handle}
+                  onChange={handleInputChange}
+                  placeholder={t('profile.instagramHandlePlaceholder')}
+                  disabled={editingSection !== 'profile'}
+                />
+                <p className="text-sm text-gray-600 mt-1">
+                  {t('profile.instagramDescription')}
+                </p>
+              </div>
+            </div>
+
+            {editingSection === 'profile' && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => handleSectionSave('profile')}
+                  disabled={saving}
+                  className="btn btn-primary"
+                >
+                  {saving ? t('profile.saving') : t('profile.saveChanges')}
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Business Identity Section */}
         <section className="card">
           <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t('profile.identitySectionTitle')}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t('profile.identitySectionDescription')}</p>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div>
-                  <label htmlFor="name" className="form-label">{t('profile.businessName')}</label>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    className="input"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="legal_name" className="form-label">{t('profile.legalEntityName')}</label>
-                  <input
-                    id="legal_name"
-                    name="legal_name"
-                    type="text"
-                    className="input"
-                    value={formData.legal_name}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="vat_number" className="form-label">{t('profile.vatNumber')}</label>
-                  <input
-                    id="vat_number"
-                    name="vat_number"
-                    type="text"
-                    className="input"
-                    value={formData.vat_number}
-                    onChange={handleInputChange}
-                  />
-                </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">{t('profile.identitySectionTitle')}</h2>
+                <p className="mt-1 text-sm text-gray-500">{t('profile.identitySectionDescription')}</p>
               </div>
-            </form>
+              <button
+                onClick={() => setEditingSection(editingSection === 'identity' ? null : 'identity')}
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {editingSection === 'identity' ? t('profile.cancel') : t('profile.edit')}
+              </button>
+            </div>
+            
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <label htmlFor="name" className="form-label">{t('profile.businessName')}</label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  className="input"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  disabled={editingSection !== 'identity'}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="legal_name" className="form-label">{t('profile.legalEntityName')}</label>
+                <input
+                  id="legal_name"
+                  name="legal_name"
+                  type="text"
+                  className="input"
+                  value={formData.legal_name}
+                  onChange={handleInputChange}
+                  disabled={editingSection !== 'identity'}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="vat_number" className="form-label">{t('profile.vatNumber')}</label>
+                <input
+                  id="vat_number"
+                  name="vat_number"
+                  type="text"
+                  className="input"
+                  value={formData.vat_number}
+                  onChange={handleInputChange}
+                  disabled={editingSection !== 'identity'}
+                />
+              </div>
+            </div>
+
+            {editingSection === 'identity' && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => handleSectionSave('identity')}
+                  disabled={saving}
+                  className="btn btn-primary"
+                >
+                  {saving ? t('profile.saving') : t('profile.saveChanges')}
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
         {/* Business Address Section */}
         <section className="card">
           <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t('profile.addressSectionTitle')}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t('profile.addressSectionDescription')}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">{t('profile.addressSectionTitle')}</h2>
+                <p className="mt-1 text-sm text-gray-500">{t('profile.addressSectionDescription')}</p>
+              </div>
+              <button
+                onClick={() => setEditingSection(editingSection === 'address' ? null : 'address')}
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {editingSection === 'address' ? t('profile.cancel') : t('profile.edit')}
+              </button>
             </div>
+            
             <div className="grid gap-6 md:grid-cols-2">
               <div className="md:col-span-2">
                 <label htmlFor="street_line1" className="form-label">{t('profile.streetLine1')}</label>
@@ -371,6 +601,7 @@ export default function ProfilePage() {
                   value={formData.street_line1}
                   onChange={handleInputChange}
                   placeholder={t('profile.streetLine1Placeholder')}
+                  disabled={editingSection !== 'address'}
                 />
               </div>
               <div className="md:col-span-2">
@@ -383,6 +614,7 @@ export default function ProfilePage() {
                   value={formData.street_line2}
                   onChange={handleInputChange}
                   placeholder={t('profile.streetLine2Placeholder')}
+                  disabled={editingSection !== 'address'}
                 />
               </div>
               <div>
@@ -394,6 +626,7 @@ export default function ProfilePage() {
                   className="input"
                   value={formData.city}
                   onChange={handleInputChange}
+                  disabled={editingSection !== 'address'}
                 />
               </div>
               <div>
@@ -405,6 +638,7 @@ export default function ProfilePage() {
                   className="input"
                   value={formData.postal_code}
                   onChange={handleInputChange}
+                  disabled={editingSection !== 'address'}
                 />
               </div>
               <div>
@@ -416,19 +650,44 @@ export default function ProfilePage() {
                   className="input"
                   value={formData.country}
                   onChange={handleInputChange}
+                  disabled={editingSection !== 'address'}
                 />
               </div>
             </div>
+
+            {editingSection === 'address' && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => handleSectionSave('address')}
+                  disabled={saving}
+                  className="btn btn-primary"
+                >
+                  {saving ? t('profile.saving') : t('profile.saveChanges')}
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
-        {/* Contact & Social Section */}
+        {/* Contact Section */}
         <section className="card">
           <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t('profile.contactSectionTitle')}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t('profile.contactSectionDescription')}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">{t('profile.contactSectionTitle')}</h2>
+                <p className="mt-1 text-sm text-gray-500">{t('profile.contactSectionDescription')}</p>
+              </div>
+              <button
+                onClick={() => setEditingSection(editingSection === 'contact' ? null : 'contact')}
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {editingSection === 'contact' ? t('profile.cancel') : t('profile.edit')}
+              </button>
             </div>
+            
             <div className="grid gap-6 md:grid-cols-2">
               <div>
                 <label htmlFor="contact_email" className="form-label">{t('profile.contactEmail')}</label>
@@ -440,84 +699,24 @@ export default function ProfilePage() {
                   value={formData.contact_email}
                   onChange={handleInputChange}
                   placeholder={t('profile.contactEmailPlaceholder')}
-                />
-              </div>
-              <div>
-                <label htmlFor="instagram_handle" className="form-label">{t('profile.instagramHandle')}</label>
-                <input
-                  id="instagram_handle"
-                  name="instagram_handle"
-                  type="text"
-                  className="input"
-                  value={formData.instagram_handle}
-                  onChange={handleInputChange}
-                  placeholder={t('profile.instagramHandlePlaceholder')}
+                  disabled={editingSection !== 'contact'}
                 />
               </div>
             </div>
+
+            {editingSection === 'contact' && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => handleSectionSave('contact')}
+                  disabled={saving}
+                  className="btn btn-primary"
+                >
+                  {saving ? t('profile.saving') : t('profile.saveChanges')}
+                </button>
+              </div>
+            )}
           </div>
         </section>
-
-        {/* Branding Section */}
-        <section className="card">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t('profile.brandingSectionTitle')}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t('profile.brandingSectionDescription')}</p>
-            </div>
-            <div className="flex flex-col items-start gap-4">
-              <label className="flex h-32 w-32 cursor-pointer items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500 transition hover:border-primary-300 hover:text-primary-600">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleLogoUpload}
-                />
-                {t('profile.logoUpload')}
-              </label>
-              {logoPreview ? (
-                <div className="relative">
-                  <Image
-                    src={logoPreview}
-                    alt="Logo preview"
-                    width={128}
-                    height={128}
-                    className="h-32 w-32 rounded-xl border border-gray-200 object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLogoFile(null)
-                      setLogoPreview(null)
-                      setFormData((prev) => ({ ...prev, logo_url: '' }))
-                    }}
-                    className="absolute right-2 top-2 rounded-full bg-white/70 p-1 text-gray-500 shadow hover:text-gray-700"
-                  >
-                    <span className="sr-only">{t('profile.logoRemove')}</span>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">{t('profile.logoEmpty')}</p>
-              )}
-            </div>
-            <p className="text-xs text-gray-500">{t('profile.logoHint')}</p>
-          </div>
-        </section>
-
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            onClick={handleSubmit}
-            className="btn btn-primary"
-          >
-            {saving ? t('profile.saving') : t('profile.save')}
-          </button>
-        </div>
 
         <section className="grid gap-6 md:grid-cols-2">
           <div className="card">

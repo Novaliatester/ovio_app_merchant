@@ -7,6 +7,7 @@ import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {useTranslation} from '@/components/LanguageProvider'
+import QRCode from 'qrcode'
 
 interface DashboardStats {
     activeOffers: number
@@ -36,6 +37,7 @@ export default function DashboardPageContent() {
         subscriptionEndsSoon: false
     })
     const [statsLoading, setStatsLoading] = useState(true)
+    const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
     const redirectingRef = useRef(false)
 
   useEffect(() => {
@@ -110,11 +112,29 @@ export default function DashboardPageContent() {
         }
     }, [merchant])
 
+    const generateQRCode = useCallback(async () => {
+        try {
+            const appStoreUrl = 'https://apps.apple.com/app/ovio-merchant/id6753307632'
+            const qrCodeDataUrl = await QRCode.toDataURL(appStoreUrl, {
+                width: 200,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            })
+            setQrCodeDataUrl(qrCodeDataUrl)
+        } catch (error) {
+            console.error('Error generating QR code:', error)
+        }
+    }, [])
+
     useEffect(() => {
         if (merchant) {
             fetchDashboardStats()
         }
-    }, [merchant, fetchDashboardStats])
+        generateQRCode()
+    }, [merchant, fetchDashboardStats, generateQRCode])
 
     const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale])
 
@@ -274,22 +294,33 @@ export default function DashboardPageContent() {
                     <div className="card flex h-full flex-col justify-between gap-6">
                         <div className="space-y-4">
                             <div
-                                className="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-600">
-                                {t('dashboard.redemptions')}
+                                className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+                                {t('dashboard.merchantApp')}
                             </div>
                             <div>
-                                <p className="text-4xl font-semibold text-gray-900">{numberFormatter.format(stats.totalRedemptions)}</p>
-                                <p className="text-sm text-gray-500">{t('dashboard.lifetimeRedemptions')}</p>
+                                <p className="text-2xl font-semibold text-gray-900">{t('dashboard.merchantAppTitle')}</p>
+                                <p className="text-sm text-gray-500">{t('dashboard.merchantAppDescription')}</p>
                             </div>
-                            <div className="rounded-xl bg-gray-50 px-4 py-3">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('dashboard.thisMonth')}</p>
-                                <p className="mt-1 text-lg font-semibold text-gray-900">{numberFormatter.format(stats.monthlyRedemptions)}</p>
+                            <div className="flex items-center justify-center rounded-xl bg-gray-50 p-4">
+                                {qrCodeDataUrl ? (
+                                    <img 
+                                        src={qrCodeDataUrl} 
+                                        alt="QR Code for Merchant App" 
+                                        className="h-32 w-32 rounded-lg"
+                                    />
+                                ) : (
+                                    <div className="h-32 w-32 animate-pulse rounded-lg bg-gray-200"></div>
+                                )}
                             </div>
                         </div>
-                        <Link href="/dashboard/offers"
-                              className="text-sm font-medium text-primary-600 hover:text-primary-700">
-                            {t('dashboard.viewPerformanceLink')}
-                        </Link>
+                        <a 
+                            href="https://apps.apple.com/app/ovio-merchant/id6753307632"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                        >
+                            {t('dashboard.downloadAppLink')}
+                        </a>
                     </div>
 
                     <div className="card flex h-full flex-col justify-between gap-6">
