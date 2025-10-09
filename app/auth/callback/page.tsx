@@ -17,6 +17,30 @@ function AuthCallbackContent() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        // Check URL parameters first
+        const accessToken = searchParams.get('access_token')
+        const refreshToken = searchParams.get('refresh_token')
+        const type = searchParams.get('type')
+
+        if (type === 'recovery' && accessToken && refreshToken) {
+          // This is a password reset flow - set the session and redirect
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          })
+
+          if (sessionError) {
+            console.error('Session error:', sessionError)
+            setError(sessionError.message)
+            return
+          }
+
+          toast.success(t('auth.passwordResetLinkValid'))
+          router.replace('/update-password')
+          return
+        }
+
+        // Regular auth callback - check existing session
         const { data, error } = await supabase.auth.getSession()
         
         if (error) {
@@ -26,20 +50,9 @@ function AuthCallbackContent() {
         }
 
         if (data.session) {
-          // Check if this is a password reset flow
-          const accessToken = searchParams.get('access_token')
-          const refreshToken = searchParams.get('refresh_token')
-          const type = searchParams.get('type')
-
-          if (type === 'recovery' && accessToken && refreshToken) {
-            // This is a password reset - redirect to password update page
-            toast.success(t('auth.passwordResetLinkValid'))
-            router.replace('/update-password')
-          } else {
-            // Regular auth callback - redirect to dashboard
-            toast.success(t('auth.loginSuccess'))
-            router.replace('/dashboard')
-          }
+          // Regular auth callback - redirect to dashboard
+          toast.success(t('auth.loginSuccess'))
+          router.replace('/dashboard')
         } else {
           // No session found - redirect to login
           router.replace('/login')
