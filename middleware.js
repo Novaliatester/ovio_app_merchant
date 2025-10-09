@@ -14,7 +14,7 @@ export async function middleware(req) {
         autoRefreshToken: true,
         persistSession: true,
         flowType: 'pkce',
-        detectSessionInUrl: false,
+        detectSessionInUrl: true,
       },
       cookies: {
         get: (name) => req.cookies.get(name)?.value,
