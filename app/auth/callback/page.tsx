@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'react-hot-toast'
 import { useTranslation } from '@/components/LanguageProvider'
 import LanguageSelector from '@/components/LanguageSelector'
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -122,4 +122,35 @@ export default function AuthCallbackPage() {
   }
 
   return null
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div 
+        className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8 relative"
+        style={{
+          backgroundImage: 'url(/1271722.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="mx-auto w-full max-w-md relative z-10">
+          <div className="mb-6 flex justify-end">
+            <LanguageSelector />
+          </div>
+          <div className="rounded-3xl bg-white/70 p-8 shadow-lg backdrop-blur-sm">
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+              <p className="text-lg font-medium mt-4">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
+  )
 }
