@@ -127,9 +127,14 @@ export default function LoginPage() {
                     <label htmlFor="password" className="form-label">
                       {t('auth.passwordLabel')}
                     </label>
-                    <Link href="/forgot-password" className="text-sm font-medium text-primary-600 hover:text-primary-700">
+                    <a 
+                      href="https://reset.ovioapp.es/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                    >
                       {t('auth.forgotPassword')}
-                    </Link>
+                    </a>
                   </div>
                   <input
                     id="password"
