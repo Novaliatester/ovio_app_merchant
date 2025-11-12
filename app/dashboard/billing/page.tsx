@@ -274,14 +274,6 @@ export default function BillingPage() {
     ? t('dashboard.noData')
     : t('billing.noRenewalYet')
 
-  const planRateLabel = isActive
-    ? t('billing.paidLabel')
-    : isTrial
-    ? t('billing.trialLabel')
-    : hasHistory
-    ? t('billing.planInactiveLabel')
-    : t('billing.planNewLabel')
-
   const subscriptionDescription = isActive
     ? t('billing.subscriptionActionsDescription')
     : hasHistory
@@ -324,7 +316,6 @@ export default function BillingPage() {
           <div className="rounded-xl bg-gray-50 px-6 py-4 text-right">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('billing.nextRenewal')}</p>
             <p className="mt-2 text-lg font-semibold text-gray-900">{renewalLabel}</p>
-            <p className="text-sm text-gray-500">{planRateLabel}</p>
           </div>
         </section>
 
